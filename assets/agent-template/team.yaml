@@ -1,0 +1,21 @@
+name: team-name
+description: [Team description]
+agents:
+  - agent1
+  - agent2
+  - agent3
+workflow:
+  - [step 1]
+  - [step 2]
+  - [step 3]
+communication:
+  style: [async/sync]
+  update_frequency: [frequency]
+  conflict_resolution: [method]
+coordination:
+  parallel_execution: [true/false]
+  task_routing: [method]
+  review_process: [method]
+specializations:
+  - [specialization 1]
+  - [specialization 2]

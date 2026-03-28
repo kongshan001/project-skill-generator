@@ -1,0 +1,31 @@
+name: expert-name
+role: [Role Title]
+description: [Agent description]
+skills:
+  - skill1
+  - skill2
+  - skill3
+capabilities:
+  - [capability 1]
+  - [capability 2]
+  - [capability 3]
+constraints:
+  - [constraint 1]
+  - [constraint 2]
+  - [constraint 3]
+style: [working style]
+focuses_on:
+  - [focus area 1]
+  - [focus area 2]
+  - [focus area 3]
+avoids:
+  - [avoidance 1]
+  - [avoidance 2]
+  - [avoidance 3]
+modules:
+  - module1
+  - module2
+  - module3
+file_patterns:
+  - /path/to/files/**/*.py
+  - /path/to/files/**/*.js
