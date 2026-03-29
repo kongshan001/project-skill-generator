@@ -452,23 +452,6 @@ class CodebaseAnalyzer:
                     language=self.language,
                     files=[str(f) for f in js_files]
                 )
-            module_path = index_file.parent
-            relative = module_path.relative_to(self.root)
-            module_name = str(relative).replace(os.sep, "/")
-            
-            # Skip node_modules
-            if "/node_modules/" in module_name:
-                continue
-            
-            # Collect JS/TS files
-            js_files = list(module_path.glob("*.{js,ts,jsx,tsx}"))
-            
-            self.modules[module_name] = ModuleInfo(
-                name=module_name,
-                path=str(module_path),
-                language=self.language,
-                files=[str(f) for f in js_files]
-            )
         
         # 如果没有发现任何模块，使用后备方法
         if not self.modules:

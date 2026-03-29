@@ -7,7 +7,7 @@
 
 ## 🔴 高优先级 - 阻塞性问题
 
-### TODO-008: 修复 JavaScript/TypeScript 项目文件发现问题 🔴 NEW
+### TODO-008: 修复 JavaScript/TypeScript 项目文件发现问题 ✅ 已完成
 
 **问题来源**: feishu_chatbot, opencode-plugins 验证
 **发现日期**: 2026-03-29
