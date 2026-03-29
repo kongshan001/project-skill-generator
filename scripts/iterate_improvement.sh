@@ -187,7 +187,7 @@ PYTHON_EOF
         python3 "/root/.openclaw/workspace-opengl/skills/project-skill-generator/scripts/analyze_codebase.py" . --no-progress --language javascript > /tmp/test_output.json
         
         js_modules_found=$(grep -c '"name"' /tmp/test_output.json || echo "0")
-        if [ "$js_modules_found" -gt 0 ]; then
+        if [ "${js_modules_found%%[[:space:]]*}" -gt 0 ]; then
             echo "[$(date '+%H:%M:%S')] ✅ JS/TS 项目发现验证成功"
         else
             echo "[$(date '+%H:%M:%S')] ⚠️  JS/TS 项目发现验证失败"
