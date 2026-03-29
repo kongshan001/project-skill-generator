@@ -357,10 +357,14 @@ class CodebaseAnalyzer:
                 relative = module_path.relative_to(self.root)
                 module_name = str(relative).replace(os.sep, "/")
                 
-                # Collect JS/TS files in this directory
-                js_files = list(module_path.glob("*.{js,ts,jsx,tsx}"))
+                # Collect JS/TS files in this directory (using individual extensions)
+                js_files = []
+                for ext in ["*.js", "*.ts", "*.jsx", "*.tsx"]:
+                    js_files.extend(module_path.glob(ext))
+                
                 if not js_files:  # If no JS/TS files, look recursively
-                    js_files = list(module_path.rglob("*.{js,ts,jsx,tsx}"))
+                    for ext in ["*.js", "*.ts", "*.jsx", "*.tsx"]:
+                        js_files.extend(module_path.rglob(ext))
                     # Filter out node_modules
                     js_files = [f for f in js_files if "node_modules" not in str(f)]
                 
