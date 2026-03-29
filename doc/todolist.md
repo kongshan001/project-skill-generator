@@ -12,7 +12,7 @@
 **问题来源**: feishu_chatbot, opencode-plugins 验证
 **发现日期**: 2026-03-29
 **严重程度**: 🔴 高
-**状态**: ⏳ 待修复
+**状态**: ✅ 已完成 (2026-03-29)
 
 **问题描述**:
 - `_discover_js_modules()` 只查找 `index.{js,ts,jsx,tsx}` 文件

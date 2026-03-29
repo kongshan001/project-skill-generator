@@ -343,16 +343,121 @@ class CodebaseAnalyzer:
                     files=files
                 )
 
+    def _discover_js_modules_fallback(self):
+        """Fallback module discovery for JS/TS projects without index files"""
+        # Look for package.json first (package.json defines module structure)
+        package_json_files = list(self.root.rglob("package.json"))
+        
+        if package_json_files:
+            for pkg_file in package_json_files:
+                if "node_modules" in str(pkg_file):
+                    continue
+                
+                module_path = pkg_file.parent
+                relative = module_path.relative_to(self.root)
+                module_name = str(relative).replace(os.sep, "/")
+                
+                # Collect JS/TS files in this directory
+                js_files = list(module_path.glob("*.{js,ts,jsx,tsx}"))
+                if not js_files:  # If no JS/TS files, look recursively
+                    js_files = list(module_path.rglob("*.{js,ts,jsx,tsx}"))
+                    # Filter out node_modules
+                    js_files = [f for f in js_files if "node_modules" not in str(f)]
+                
+                if js_files:
+                    self.modules[module_name] = ModuleInfo(
+                        name=module_name,
+                        path=str(module_path),
+                        language=self.language,
+                        files=[str(f) for f in js_files]
+                    )
+        else:
+            # No package.json found - use directory-based fallback
+            # Group JS/TS files by directory
+            dir_files = defaultdict(list)
+            
+            # Use separate patterns for each extension
+            for ext in ["*.js", "*.ts", "*.jsx", "*.tsx"]:
+                for js_file in self.root.rglob(ext):
+                    # Skip excluded directories (use full path matching for node_modules)
+                    if any(skip in str(js_file) for skip in ["node_modules", "dist", "build", ".git", "venv"]) or "/node_modules/" in str(js_file):
+                        continue
+                    
+                    module_path = js_file.parent
+                    relative = module_path.relative_to(self.root)
+                    
+                    # Use directory path as module name
+                    if str(relative) == ".":
+                        module_name = "app"
+                    else:
+                        module_name = str(relative).replace(os.sep, "/")
+                    
+                    dir_files[module_name].append(str(js_file))
+            
+            # Create modules from directory groups
+            for module_name, files in dir_files.items():
+                if files:
+                    module_path = Path(files[0]).parent
+                    self.modules[module_name] = ModuleInfo(
+                        name=module_name,
+                        path=str(module_path),
+                        language=self.language,
+                        files=files
+                    )
+    
     def _discover_js_modules(self):
         """Discover JavaScript/TypeScript modules"""
-        # Look for package.json or index files
-        for index_file in self.root.rglob("index.{js,ts,jsx,tsx}"):
+        # 先尝试标准发现方式
+        # Look for index files
+        for index_file in self.root.rglob("index.js"):
             module_path = index_file.parent
             relative = module_path.relative_to(self.root)
             module_name = str(relative).replace(os.sep, "/")
             
             # Skip node_modules
-            if "node_modules" in module_name:
+            if "/node_modules/" in module_name:
+                continue
+            
+            # Collect JS/TS files using separate patterns
+            js_files = []
+            for ext in ["*.js", "*.ts", "*.jsx", "*.tsx"]:
+                js_files.extend(module_path.glob(ext))
+            
+            self.modules[module_name] = ModuleInfo(
+                name=module_name,
+                path=str(module_path),
+                language=self.language,
+                files=[str(f) for f in js_files]
+            )
+        
+        # Also check for index.ts, index.jsx, index.tsx
+        for ext in ["index.ts", "index.jsx", "index.tsx"]:
+            for index_file in self.root.rglob(ext):
+                module_path = index_file.parent
+                relative = module_path.relative_to(self.root)
+                module_name = str(relative).replace(os.sep, "/")
+                
+                # Skip node_modules
+                if "/node_modules/" in module_name:
+                    continue
+                
+                # Collect JS/TS files using separate patterns
+                js_files = []
+                for file_ext in ["*.js", "*.ts", "*.jsx", "*.tsx"]:
+                    js_files.extend(module_path.glob(file_ext))
+                
+                self.modules[module_name] = ModuleInfo(
+                    name=module_name,
+                    path=str(module_path),
+                    language=self.language,
+                    files=[str(f) for f in js_files]
+                )
+            module_path = index_file.parent
+            relative = module_path.relative_to(self.root)
+            module_name = str(relative).replace(os.sep, "/")
+            
+            # Skip node_modules
+            if "/node_modules/" in module_name:
                 continue
             
             # Collect JS/TS files
@@ -364,6 +469,10 @@ class CodebaseAnalyzer:
                 language=self.language,
                 files=[str(f) for f in js_files]
             )
+        
+        # 如果没有发现任何模块，使用后备方法
+        if not self.modules:
+            self._discover_js_modules_fallback()
     
     def _discover_cpp_modules(self):
         """Discover C++ modules based on header/source files"""
