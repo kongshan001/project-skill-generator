@@ -15,14 +15,14 @@ echo "[$TIME] 开始时间: $DATE $TIME"
 echo ""
 
 # 检查高优先级TODO项 - 使用UTF-8编码
-TODO_008_COUNT=$(grep -A10 "TODO-008" "$TODOLIST" | grep -c "🔴.*NEW")
+TODO_008_COUNT=$(grep -A10 "TODO-008" "$TODOLIST" | grep -c "状态.*⏳.*待修复")
 TODO_001_COUNT=$(grep -A10 "TODO-001" "$TODOLIST" | grep -c "状态.*⏳.*待修复")
 
 # 同时检查实际的TODO项存在性
 HAS_TODO_008=$(grep -c "TODO-008" "$TODOLIST")
 HAS_TODO_001=$(grep -c "TODO-001" "$TODOLIST")
 
-if [ "$TODO_008_COUNT" -gt 0 ] || [ "$HAS_TODO_008" -gt 0 ]; then
+if [ "$TODO_008_COUNT" -gt 0 ] || [ "$TODO_001_COUNT" -gt 0 ]; then
     echo "[$(date '+%H:%M:%S')] 🔴 发现高优先级 TODO-008: 修复 JavaScript/TypeScript 项目文件发现问题"
     
     # 执行修复
