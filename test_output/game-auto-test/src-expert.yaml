@@ -1,0 +1,28 @@
+avoids:
+- technical debt
+- code duplication
+- poor documentation
+capabilities:
+- Add type annotations
+- Work with GameAutoTester
+- Use setup_logging()
+constraints:
+- Only modify src-related files
+- Follow existing code patterns
+- Maintain backward compatibility
+- Write tests for new functionality
+description: 'Specialized agent for src domain. Expert in modules: src'
+file_patterns:
+- /src/main.py
+- /src/__init__.py
+focuses_on:
+- code quality
+- maintainability
+- best practices
+modules:
+- src
+name: src-expert
+role: Src Expert
+skills:
+- src
+style: thorough, professional, detail-oriented

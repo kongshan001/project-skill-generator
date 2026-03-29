@@ -198,6 +198,43 @@ class CodebaseAnalyzer:
                 files=[str(f) for f in py_files]
             )
     
+        # Fallback if no standard modules found
+        if not self.modules:
+            self._discover_python_modules_fallback()
+
+
+    def _discover_python_modules_fallback(self):
+        """Fallback module discovery for projects without __init__.py"""
+        # Group Python files by directory
+        dir_files = defaultdict(list)
+        
+        for py_file in self.root.rglob("*.py"):
+            # Skip excluded directories
+            if any(skip in str(py_file) for skip in ["venv", "env", "__pycache__", ".git", "node_modules", "build", "dist"]):
+                continue
+            
+            module_path = py_file.parent
+            relative = module_path.relative_to(self.root)
+            
+            # Skip root directory
+            if str(relative) == ".":
+                module_name = "root"
+            else:
+                module_name = str(relative).replace(os.sep, ".")
+            
+            dir_files[module_name].append(str(py_file))
+        
+        # Create modules from directory groups
+        for module_name, files in dir_files.items():
+            if files:
+                module_path = Path(files[0]).parent
+                self.modules[module_name] = ModuleInfo(
+                    name=module_name,
+                    path=str(module_path),
+                    language="python",
+                    files=files
+                )
+
     def _discover_js_modules(self):
         """Discover JavaScript/TypeScript modules"""
         # Look for package.json or index files
@@ -571,12 +608,26 @@ def main():
     analyzer = CodebaseAnalyzer(args.codebase_path, depth=args.depth)
     result = analyzer.analyze()
     
-    # Convert to dict for JSON serialization
+    # Convert to dict for JSON serialization and handle sets
     result_dict = asdict(result)
+    
+    # Convert sets to lists for JSON serialization
+    def convert_sets_to_lists(obj):
+        if isinstance(obj, dict):
+            return {k: convert_sets_to_lists(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_sets_to_lists(item) for item in obj]
+        elif isinstance(obj, set):
+            return list(obj)
+        else:
+            return obj
+    
+    # Convert sets to lists
+    result_dict_converted = convert_sets_to_lists(result_dict)
     
     # Save to file
     output_path = Path(args.output)
-    output_path.write_text(json.dumps(result_dict, indent=2, ensure_ascii=False))
+    output_path.write_text(json.dumps(result_dict_converted, indent=2, ensure_ascii=False))
     print(f"\n💾 Results saved to: {output_path}")
 
 

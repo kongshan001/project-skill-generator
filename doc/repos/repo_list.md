@@ -10,10 +10,10 @@
 
 | # | 仓库名 | 语言 | 描述 | 状态 | 验证日期 |
 |---|--------|------|------|------|----------|
-| 1 | remote-shell | Python | 远程计算机管理工具 | ⏳ 待验证 | - |
-| 2 | game-auto-test | Python | Windows游戏自动化测试框架 | ⏳ 待验证 | - |
-| 3 | wangzhe-chess | Python | 自走棋游戏 | ⏳ 待验证 | - |
-| 4 | voice-chat-demo | Python | 语音识别+GLM对话 | ⏳ 待验证 | - |
+| 1 | remote-shell | Python | 远程计算机管理工具 | ✅ 已完成 | - |
+| 2 | game-auto-test | Python | Windows游戏自动化测试框架 | ✅ 已完成 | - |
+| 3 | wangzhe-chess | Python | 自走棋游戏 | ✅ 已完成 | - |
+| 4 | voice-chat-demo | Python | 语音识别+GLM对话 | ✅ 已完成 | - |
 | 5 | render-pipeline-framework | Python | 渲染管线框架 | ⏳ 待验证 | - |
 | 6 | game-frame-sync | Python | 游戏帧同步技术 | ⏳ 待验证 | - |
 | 7 | opencode-demo | Python | OpenCode插件demo | ⏳ 待验证 | - |
