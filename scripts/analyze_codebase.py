@@ -40,6 +40,8 @@ class ModuleInfo:
     patterns: List[str] = field(default_factory=list)
     domain_knowledge: List[str] = field(default_factory=list)
     conventions: Dict[str, Any] = field(default_factory=dict)
+    classes_info: List[Dict[str, Any]] = field(default_factory=list)
+    functions_info: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -85,7 +87,7 @@ class CodebaseAnalyzer:
         for file in self.root.rglob("*"):
             if file.is_file():
                 ext = file.suffix
-                if ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go', '.rs', '.cpp', '.c']:
+                if ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go', '.rs', '.cpp', '.c', '.h', '.hpp', '.sh']:
                     extensions[ext] += 1
         
         if not extensions:
@@ -102,7 +104,10 @@ class CodebaseAnalyzer:
             '.go': 'go',
             '.rs': 'rust',
             '.cpp': 'cpp',
-            '.c': 'c'
+            '.c': 'c',
+            '.h': 'cpp',  # Treat header files as C++
+            '.hpp': 'cpp',
+            '.sh': 'shell'  # Shell scripts
         }
         
         most_common = max(extensions.items(), key=lambda x: x[1])
@@ -174,6 +179,10 @@ class CodebaseAnalyzer:
             self._discover_python_modules()
         elif self.language in ["javascript", "typescript"]:
             self._discover_js_modules()
+        elif self.language == "cpp":
+            self._discover_cpp_modules()
+        elif self.language == "shell":
+            self._discover_shell_modules()
         else:
             self._discover_generic_modules()
     
@@ -257,6 +266,61 @@ class CodebaseAnalyzer:
                 files=[str(f) for f in js_files]
             )
     
+    def _discover_cpp_modules(self):
+        """Discover C++ modules based on header/source files"""
+        # Look for common C++ project structures
+        for root_dir, dirs, files in os.walk(self.root):
+            # Skip common build directories
+            dirs[:] = [d for d in dirs if not d.startswith(('build', 'dist', 'obj', 'bin', '.git', 'node_modules'))]
+            
+            root_path = Path(root_dir)
+            relative = root_path.relative_to(self.root)
+            
+            if str(relative) == ".":
+                module_name = "root"
+            else:
+                module_name = str(relative).replace(os.sep, "/")
+            
+            # Collect C++ files
+            cpp_files = []
+            for file in files:
+                if file.endswith(('.cpp', '.cc', '.cxx', '.c++', '.h', '.hpp', '.hxx')):
+                    cpp_files.append(str(root_path / file))
+            
+            if cpp_files:
+                self.modules[module_name] = ModuleInfo(
+                    name=module_name,
+                    path=str(root_path),
+                    language="cpp",
+                    files=cpp_files
+                )
+    
+    def _discover_shell_modules(self):
+        """Discover Shell script modules"""
+        # Group shell scripts by directory
+        for shell_file in self.root.rglob("*.sh"):
+            module_path = shell_file.parent
+            relative = module_path.relative_to(self.root)
+            
+            # Skip if too deep in nested directories
+            if len(relative.parts) > 3:
+                continue
+            
+            if str(relative) == ".":
+                module_name = "shell"
+            else:
+                module_name = f"shell-{str(relative).replace(os.sep, '-')}"
+            
+            # Collect shell scripts
+            shell_files = list(module_path.glob("*.sh"))
+            if module_name not in self.modules:
+                self.modules[module_name] = ModuleInfo(
+                    name=module_name,
+                    path=str(module_path),
+                    language="shell",
+                    files=[str(f) for f in shell_files]
+                )
+    
     def _discover_generic_modules(self):
         """Discover modules for other languages"""
         # Group by top-level directories
@@ -279,9 +343,13 @@ class CodebaseAnalyzer:
                 self._analyze_python_file(file_path, module)
             elif self.language in ["javascript", "typescript"]:
                 self._analyze_js_file(file_path, module)
+            elif self.language == "cpp":
+                self._analyze_cpp_file(file_path, module)
+            elif self.language == "shell":
+                self._analyze_shell_file(file_path, module)
     
     def _analyze_python_file(self, file_path: str, module: ModuleInfo):
-        """Analyze a Python file"""
+        """Analyze a Python file with enhanced AST analysis"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -298,15 +366,42 @@ class CodebaseAnalyzer:
                     if node.module:
                         module.imports.add(node.module)
             
-            # Extract classes and functions
+            # Enhanced analysis for classes and functions
             for node in ast.iter_child_nodes(tree):
                 if isinstance(node, ast.ClassDef):
-                    module.classes.append(node.name)
-                    # Extract methods
+                    # Enhanced class analysis
+                    class_info = {
+                        'name': node.name,
+                        'methods': [],
+                        'properties': [],
+                        'complexity': 0,
+                        'docstring': ast.get_docstring(node),
+                        'inheritance': [base.id for base in node.bases] if node.bases else []
+                    }
+                    
+                    # Calculate complexity for class (method counts)
                     for item in node.body:
                         if isinstance(item, ast.FunctionDef):
-                            module.functions.append(f"{node.name}.{item.name}")
+                            method_info = self._analyze_function_def(item)
+                            class_info['methods'].append(method_info)
+                            class_info['complexity'] += method_info['complexity']
+                    
+                    # Add enhanced class info
+                    if hasattr(module, 'classes_info'):
+                        module.classes_info.append(class_info)
+                    else:
+                        module.classes_info = [class_info]
+                    
+                    module.classes.append(node.name)
+                    
                 elif isinstance(node, ast.FunctionDef):
+                    # Enhanced function analysis
+                    func_info = self._analyze_function_def(node)
+                    if hasattr(module, 'functions_info'):
+                        module.functions_info.append(func_info)
+                    else:
+                        module.functions_info = [func_info]
+                    
                     module.functions.append(node.name)
             
             # Extract patterns
@@ -314,6 +409,98 @@ class CodebaseAnalyzer:
             
         except Exception as e:
             print(f"   ⚠️  Error analyzing {file_path}: {e}")
+    
+    def _analyze_function_def(self, func_node):
+        """Analyze a function definition in detail"""
+        complexity = self._calculate_complexity(func_node)
+        
+        # Extract parameter information
+        params = []
+        for arg in func_node.args.args:
+            param_info = {
+                'name': arg.arg,
+                'type_annotation': None,
+                'default_value': None
+            }
+            
+            # Extract default value (compatible with different Python versions)
+            if func_node.args.kw_defaults and hasattr(func_node.args, 'kwonlydefaults'):
+                # Python 3.11+ style
+                if func_node.args.kwonlydefaults and arg.arg in func_node.args.kwonlydefaults:
+                    param_info['default_value'] = func_node.args.kwonlydefaults[arg.arg]
+            elif func_node.args.kw_defaults and hasattr(func_node.args, 'kw_defaults'):
+                # Older Python versions
+                kwonly_args = [arg.arg for arg in func_node.args.kwonlyargs or []]
+                if arg.arg in kwonly_args:
+                    idx = kwonly_args.index(arg.arg)
+                    if idx < len(func_node.args.kw_defaults) and func_node.args.kw_defaults[idx] is not None:
+                        param_info['default_value'] = func_node.args.kw_defaults[idx]
+            
+            # Extract type hints
+            if hasattr(func_node.args, 'annotations') and func_node.args.annotations:
+                if arg.arg in func_node.args.annotations:
+                    param_info['type_annotation'] = self._get_type_annotation(func_node.args.annotations[arg.arg])
+            
+            params.append(param_info)
+        
+        # Extract return type
+        return_type = None
+        if func_node.returns:
+            return_type = self._get_type_annotation(func_node.returns)
+        
+        # Extract function info
+        return {
+            'name': func_node.name,
+            'parameters': params,
+            'return_type': return_type,
+            'is_async': isinstance(func_node, ast.AsyncFunctionDef),
+            'is_generator': any(isinstance(node, ast.Yield) for node in ast.walk(func_node)),
+            'complexity': complexity,
+            'docstring': ast.get_docstring(func_node),
+            'line_count': func_node.end_lineno - func_node.lineno + 1 if hasattr(func_node, 'end_lineno') else 0,
+            'call_count': self._count_function_calls(func_node)
+        }
+    
+    def _get_type_annotation(self, annotation_node):
+        """Extract type annotation from AST node"""
+        if isinstance(annotation_node, ast.Name):
+            return annotation_node.id
+        elif isinstance(annotation_node, ast.Attribute):
+            return f"{annotation_node.value.id}.{annotation_node.attr}"
+        elif isinstance(annotation_node, ast.Subscript):
+            value = self._get_type_annotation(annotation_node.value)
+            slice_str = self._get_type_annotation(annotation_node.slice)
+            return f"{value}[{slice_str}]"
+        elif isinstance(annotation_node, ast.Constant):
+            return str(annotation_node.value)
+        else:
+            return str(annotation_node)
+    
+    def _calculate_complexity(self, func_node):
+        """Calculate cyclomatic complexity"""
+        complexity = 1  # Base complexity
+        
+        for node in ast.walk(func_node):
+            if isinstance(node, (ast.If, ast.While, ast.For, ast.AsyncFor)):
+                complexity += 1
+            elif isinstance(node, ast.ExceptHandler):
+                complexity += 1
+            elif isinstance(node, ast.With):
+                complexity += 1
+            elif isinstance(node, ast.comprehension):
+                complexity += 1
+        
+        return complexity
+    
+    def _count_function_calls(self, func_node):
+        """Count function calls within this function"""
+        call_count = 0
+        
+        for node in ast.walk(func_node):
+            if isinstance(node, ast.Call):
+                call_count += 1
+        
+        return call_count
     
     def _analyze_js_file(self, file_path: str, module: ModuleInfo):
         """Analyze a JavaScript/TypeScript file"""
@@ -343,6 +530,66 @@ class CodebaseAnalyzer:
             
             # Extract patterns
             self._extract_js_patterns(content, module, file_path)
+            
+        except Exception as e:
+            print(f"   ⚠️  Error analyzing {file_path}: {e}")
+    
+    def _analyze_cpp_file(self, file_path: str, module: ModuleInfo):
+        """Analyze a C++ file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract includes
+            include_pattern = r'#include\s*[<"]([^>"]+)[>"]'
+            for match in re.finditer(include_pattern, content):
+                module.imports.add(match.group(1))
+            
+            # Extract class definitions
+            class_pattern = r'class\s+(\w+)\s*[{:;]'
+            for match in re.finditer(class_pattern, content):
+                module.classes.append(match.group(1))
+            
+            # Extract function definitions
+            try:
+                func_pattern = r'(?:static\s+)?(?:inline\s+)?(?:template\s+[^{]*\s+)?(?:[\w:*&<>\s]+)?\s+(\w+)\s*\([^)]*\)\s*(?:const|volatile|noexcept|override|final)?\s*[;{]'
+                for match in re.finditer(func_pattern, content):
+                    func_name = match.group(1)
+                    # Avoid mistaking classes as functions
+                    if func_name not in module.classes:
+                        module.functions.append(func_name)
+            except Exception as e:
+                print(f"   ⚠️  正则表达式解析错误: {e}")
+            
+            # Extract patterns
+            self._extract_cpp_patterns(content, module, file_path)
+            
+        except Exception as e:
+            print(f"   ⚠️  Error analyzing {file_path}: {e}")
+    
+    def _analyze_shell_file(self, file_path: str, module: ModuleInfo):
+        """Analyze a Shell script file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract source (similar to imports)
+            source_pattern = r'source\s+["\']([^"\']+)["\']'
+            for match in re.finditer(source_pattern, content):
+                module.imports.add(match.group(1))
+            
+            # Extract function definitions
+            func_pattern = r'(\w+)\s*\(\s*\)\s*\{'
+            for match in re.finditer(func_pattern, content):
+                module.functions.append(match.group(1))
+            
+            # Extract variables (common global variables)
+            var_pattern = r'export\s+(\w+)'
+            for match in re.finditer(var_pattern, content):
+                module.exports.append(match.group(1))
+            
+            # Extract patterns
+            self._extract_shell_patterns(content, module, file_path)
             
         except Exception as e:
             print(f"   ⚠️  Error analyzing {file_path}: {e}")
@@ -423,6 +670,102 @@ class CodebaseAnalyzer:
                 self.patterns[pattern] = CodePattern(
                     name=pattern,
                     description=f"Usage of {pattern}",
+                    examples=[],
+                    frequency=0,
+                    files=[]
+                )
+            self.patterns[pattern].frequency += 1
+            if file_path not in self.patterns[pattern].files:
+                self.patterns[pattern].files.append(file_path)
+    
+    def _extract_cpp_patterns(self, content: str, module: ModuleInfo, file_path: str):
+        """Extract C++-specific patterns"""
+        patterns_found = []
+        
+        # Smart pointers
+        if 'std::unique_ptr' in content or 'std::shared_ptr' in content:
+            patterns_found.append("smart-pointers")
+        
+        # STL containers
+        if any(container in content for container in ['std::vector', 'std::map', 'std::list', 'std::string']):
+            patterns_found.append("stl-containers")
+        
+        # Templates
+        if 'template' in content:
+            patterns_found.append("templates")
+        
+        # RAII patterns
+        if 'explicit' in content and 'constructor' in content:
+            patterns_found.append("raii")
+        
+        # Exception handling
+        if 'try' in content and 'catch' in content:
+            patterns_found.append("exception-handling")
+        
+        # Virtual functions
+        if 'virtual' in content:
+            patterns_found.append("virtual-functions")
+        
+        # Const correctness
+        if content.count('const') > 5:
+            patterns_found.append("const-correctness")
+        
+        module.patterns.extend(patterns_found)
+        
+        # Add to global patterns
+        for pattern in patterns_found:
+            if pattern not in self.patterns:
+                self.patterns[pattern] = CodePattern(
+                    name=pattern,
+                    description=f"C++ {pattern}",
+                    examples=[],
+                    frequency=0,
+                    files=[]
+                )
+            self.patterns[pattern].frequency += 1
+            if file_path not in self.patterns[pattern].files:
+                self.patterns[pattern].files.append(file_path)
+    
+    def _extract_shell_patterns(self, content: str, module: ModuleInfo, file_path: str):
+        """Extract Shell-specific patterns"""
+        patterns_found = []
+        
+        # Functions
+        if 'function' in content or re.search(r'\w+\(\)\s*\{', content):
+            patterns_found.append("shell-functions")
+        
+        # Environment variables
+        if re.search(r'\$\w+', content):
+            patterns_found.append("env-variables")
+        
+        # Command piping
+        if '|' in content:
+            patterns_found.append("pipe-commands")
+        
+        # Conditional blocks
+        if 'if ' in content and 'fi' in content:
+            patterns_found.append("conditionals")
+        
+        # Loops
+        if 'for ' in content or 'while ' in content:
+            patterns_found.append("loops")
+        
+        # Error handling
+        if 'set -e' in content or 'trap' in content:
+            patterns_found.append("error-handling")
+        
+        # Process substitution
+        if '<(' in content or '>' in content:
+            patterns_found.append("process-substitution")
+        
+        module.patterns.extend(patterns_found)
+        
+        # Add to global patterns
+        for pattern in patterns_found:
+            if pattern not in self.patterns:
+                self.patterns[pattern] = CodePattern(
+                    name=pattern,
+                    description=f"Shell {pattern}",
                     examples=[],
                     frequency=0,
                     files=[]
