@@ -80,6 +80,9 @@ class CodebaseAnalyzer:
         self.modules: Dict[str, ModuleInfo] = {}
         self.patterns: Dict[str, CodePattern] = {}
         self.language = self._detect_language()
+        self.total_files = 0
+        self.processed_files = 0
+        self.show_progress = True
         
     def _detect_language(self) -> str:
         """Detect primary programming language"""
@@ -113,6 +116,25 @@ class CodebaseAnalyzer:
         most_common = max(extensions.items(), key=lambda x: x[1])
         return lang_map.get(most_common[0], "unknown")
     
+    def _update_progress(self, message=""):
+        """Update and display progress"""
+        if not self.show_progress:
+            return
+            
+        if self.total_files > 0:
+            progress = (self.processed_files / self.total_files) * 100
+            bar_length = 40
+            filled_length = int(bar_length * progress / 100)
+            bar = '█' * filled_length + '-' * (bar_length - filled_length)
+            
+            if message:
+                print(f"\r📊 Progress: [{bar}] {progress:.1f}% ({self.processed_files}/{self.total_files}) - {message}", end='')
+            else:
+                print(f"\r📊 Progress: [{bar}] {progress:.1f}% ({self.processed_files}/{self.total_files})", end='')
+            
+            if self.processed_files >= self.total_files:
+                print()  # New line when complete
+    
     def analyze(self) -> AnalysisResult:
         """Run full analysis"""
         print(f"🔍 Analyzing codebase: {self.root}")
@@ -124,11 +146,16 @@ class CodebaseAnalyzer:
         self._discover_modules()
         print(f"   Found {len(self.modules)} modules")
         
+        # Count total files for progress tracking
+        self.total_files = sum(len(m.files) for m in self.modules.values())
+        self.processed_files = 0
+        
         # Step 2: Analyze each module
         print("\n🔬 Analyzing modules...")
         for module_name, module in self.modules.items():
             print(f"   Processing {module_name}...")
             self._analyze_module(module)
+            self._update_progress(f"Completed {module_name}")
         
         # Step 3: Extract patterns
         print("\n🎨 Extracting patterns...")
@@ -347,6 +374,9 @@ class CodebaseAnalyzer:
                 self._analyze_cpp_file(file_path, module)
             elif self.language == "shell":
                 self._analyze_shell_file(file_path, module)
+            
+            self.processed_files += 1
+            self._update_progress()
     
     def _analyze_python_file(self, file_path: str, module: ModuleInfo):
         """Analyze a Python file with enhanced AST analysis"""
@@ -355,7 +385,11 @@ class CodebaseAnalyzer:
                 content = f.read()
             
             # Parse AST
-            tree = ast.parse(content)
+            try:
+                tree = ast.parse(content)
+            except SyntaxError as e:
+                print(f"   ⚠️  Syntax error in {file_path}: {e}")
+                return
             
             # Extract imports
             for node in ast.walk(tree):
@@ -944,12 +978,72 @@ def main():
     parser.add_argument("--modules", help="Comma-separated modules to analyze")
     parser.add_argument("--exclude", help="Comma-separated patterns to exclude")
     parser.add_argument("--language", help="Primary language (auto-detect if not specified)")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    parser.add_argument("--quiet", "-q", action="store_true", help="Suppress all output except errors")
+    parser.add_argument("--no-progress", action="store_true", help="Disable progress bar display")
     
     args = parser.parse_args()
     
-    # Run analysis
-    analyzer = CodebaseAnalyzer(args.codebase_path, depth=args.depth)
-    result = analyzer.analyze()
+    # Setup logging
+    if args.quiet:
+        quiet = True
+        verbose = False
+    else:
+        quiet = False
+        verbose = args.verbose
+    
+    def log(message, level="info"):
+        """Conditional logging based on verbosity and quiet flags"""
+        if quiet:
+            return
+        
+        if level == "error":
+            print(f"❌ {message}")
+        elif level == "warning":
+            print(f"⚠️  {message}")
+        elif level == "success":
+            print(f"✅ {message}")
+        elif verbose:
+            print(f"🔍 {message}")
+        else:
+            print(f"   {message}")
+    
+    try:
+        # Validate codebase path
+        codebase_path = Path(args.codebase_path).resolve()
+        if not codebase_path.exists():
+            raise FileNotFoundError(f"Codebase path does not exist: {codebase_path}")
+        
+        if not codebase_path.is_dir():
+            raise NotADirectoryError(f"Path is not a directory: {codebase_path}")
+        
+        log(f"Analyzing codebase: {codebase_path}", "info")
+        
+        # Run analysis
+        analyzer = CodebaseAnalyzer(str(codebase_path), depth=args.depth)
+        analyzer.show_progress = not args.no_progress
+        result = analyzer.analyze()
+        
+    except FileNotFoundError as e:
+        log(f"Path not found: {e}", "error")
+        log("Please provide a valid path to your codebase directory.", "warning")
+        sys.exit(1)
+        
+    except NotADirectoryError as e:
+        log(f"Invalid path: {e}", "error")
+        log("The specified path must be a directory.", "warning")
+        sys.exit(1)
+        
+    except KeyboardInterrupt:
+        log("\nAnalysis interrupted by user.", "warning")
+        sys.exit(130)
+        
+    except Exception as e:
+        log(f"Unexpected error during analysis: {e}", "error")
+        if verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
     
     # Convert to dict for JSON serialization and handle sets
     result_dict = asdict(result)
