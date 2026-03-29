@@ -11,6 +11,7 @@ Options:
     --modules LIST        Comma-separated modules to analyze (default: auto-detect)
     --exclude LIST        Comma-separated patterns to exclude
     --language LANG       Primary language (default: auto-detect)
+    --config FILE         Configuration file path (default: .psg.yaml)
 """
 
 import argparse
@@ -23,6 +24,8 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, List, Set, Optional, Any
 import sys
+sys.path.insert(0, os.path.dirname(__file__))
+from config_parser import ConfigParser, PSGConfig
 
 
 @dataclass
@@ -74,15 +77,32 @@ class AnalysisResult:
 class CodebaseAnalyzer:
     """Main analyzer class"""
     
-    def __init__(self, codebase_path: str, depth: str = "standard"):
+    def __init__(self, codebase_path: str, depth: str = "standard", config_path: str = None):
         self.root = Path(codebase_path).resolve()
         self.depth = depth
         self.modules: Dict[str, ModuleInfo] = {}
         self.patterns: Dict[str, CodePattern] = {}
+        
+        # Load configuration
+        self.config = None
+        if config_path:
+            self.config_parser = ConfigParser(config_path)
+            self.config = self.config_parser.load_config(config_path)
+            
+            # Apply configuration settings
+            self.show_progress = self.config.enable_progress
+            if hasattr(self.config, 'verbose'):
+                print(f"🔧 配置文件加载成功: {config_path}")
+                print(f"   默认语言: {self.config.default_language}")
+                print(f"   分析深度: {self.config.default_depth}")
+                print(f"   模块数量: {len(self.config.modules)}")
+        else:
+            self.show_progress = True
+            self.config_parser = None
+            
         self.language = self._detect_language()
         self.total_files = 0
         self.processed_files = 0
-        self.show_progress = True
         
     def _detect_language(self) -> str:
         """Detect primary programming language"""
@@ -215,6 +235,58 @@ class CodebaseAnalyzer:
     
     def _discover_python_modules(self):
         """Discover Python modules based on __init__.py"""
+        # Check if we have manual module configurations
+        if self.config and self.config.modules:
+            manual_modules = self.config_parser.get_manual_modules(self.root)
+            for module in manual_modules:
+                if module.language.lower() == "python":
+                    # Collect Python files in this module
+                    py_files = []
+                    module_path = Path(module.path)
+                    
+                    if module.analyze_depth == "shallow":
+                        py_files = list(module_path.glob("*.py"))
+                    else:
+                        py_files = list(module_path.rglob("*.py"))
+                    
+                    # Apply include/exclude patterns
+                    filtered_files = []
+                    for file_path in py_files:
+                        file_str = str(file_path)
+                        
+                        # Check include patterns
+                        if module.include_patterns:
+                            import fnmatch
+                            matched = False
+                            for pattern in module.include_patterns:
+                                if fnmatch.fnmatch(file_str, pattern):
+                                    matched = True
+                                    break
+                            if not matched:
+                                continue
+                        
+                        # Check exclude patterns
+                        excluded = False
+                        for pattern in module.exclude_patterns:
+                            import fnmatch
+                            if fnmatch.fnmatch(file_str, pattern):
+                                excluded = True
+                                break
+                        
+                        if not excluded:
+                            filtered_files.append(str(file_path))
+                    
+                    self.modules[module.name] = ModuleInfo(
+                        name=module.name,
+                        path=str(module_path),
+                        language="python",
+                        files=filtered_files
+                    )
+                    
+                    print(f"✅ 手动配置模块: {module.name} ({len(filtered_files)} 文件)")
+            return
+        
+        # Standard auto-discovery if no manual config
         for init_file in self.root.rglob("__init__.py"):
             module_path = init_file.parent
             relative = module_path.relative_to(self.root)
@@ -978,6 +1050,7 @@ def main():
     parser.add_argument("--modules", help="Comma-separated modules to analyze")
     parser.add_argument("--exclude", help="Comma-separated patterns to exclude")
     parser.add_argument("--language", help="Primary language (auto-detect if not specified)")
+    parser.add_argument("--config", "-c", help="Configuration file path", default=".psg.yaml")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress all output except errors")
     parser.add_argument("--no-progress", action="store_true", help="Disable progress bar display")
@@ -1020,7 +1093,17 @@ def main():
         log(f"Analyzing codebase: {codebase_path}", "info")
         
         # Run analysis
-        analyzer = CodebaseAnalyzer(str(codebase_path), depth=args.depth)
+        config_path = args.config
+        config_exists = Path(config_path).exists()
+        
+        if config_exists:
+            log(f"Using configuration file: {config_path}", "info")
+            analyzer = CodebaseAnalyzer(str(codebase_path), depth=args.depth, config_path=config_path)
+        else:
+            log("No configuration file found, using defaults", "info")
+            analyzer = CodebaseAnalyzer(str(codebase_path), depth=args.depth)
+            config_path = None
+        
         analyzer.show_progress = not args.no_progress
         result = analyzer.analyze()
         

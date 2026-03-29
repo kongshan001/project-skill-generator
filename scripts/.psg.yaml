@@ -1,0 +1,26 @@
+default_depth: deep
+default_language: python
+enable_progress: true
+global_exclude:
+- __pycache__
+- .git
+- node_modules
+- venv
+- env
+- build
+- dist
+- '*.log'
+- '*.tmp'
+global_include: []
+max_file_size: 1024
+modules:
+- analyze_depth: deep
+  exclude_patterns:
+  - __pycache__
+  - .git
+  include_patterns:
+  - '*.py'
+  language: python
+  name: root
+  path: .
+verbose: false
