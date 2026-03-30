@@ -64,40 +64,205 @@ validated_repos: 15/15
 - ✅ **语言支持**: Python, JavaScript/TypeScript, C++, Shell
 - ✅ **框架支持**: Next.js, React, Vue, FastAPI
 
-## 🚀 快速开始
+## 🚀 快速开始（自然语言方式）
 
-### 方式一：直接放到项目中（推荐）
+### 🎯 最简单的使用方式
 
-```bash
-# 1. 将此 skill 复制到你的项目
-cp -r project-skill-generator /your/project/.claude/skills/
+**直接用自然语言和 Claude Code 对话**：
 
-# 2. 在项目目录下运行分析
-cd /your/project
-python .claude/skills/project-skill-generator/scripts/analyze_codebase.py . --output analysis.json
+#### 场景 1: 首次为项目生成技能
 
-# 3. 生成技能
-python .claude/skills/project-skill-generator/scripts/enhanced_generate_skill.py analysis.json --output .claude/skills/
+```
+你: 帮我分析这个项目并生成技能文档
 
-# 4. 生成专家代理
-python .claude/skills/project-skill-generator/scripts/enhanced_generate_agent.py analysis.json --output .claude/agents/
+Claude Code: 好的！我会：
+1. 扫描项目结构
+2. 识别模块和依赖
+3. 生成专业的技能文档
+
+开始分析... 
+✅ 发现 15 个模块
+✅ 已生成技能文档到 .claude/skills/
 ```
 
-### 方式二：独立使用
+#### 场景 2: 为新模块生成技能
+
+```
+你: 我刚添加了一个支付模块，帮我生成对应的技能
+
+Claude Code: 好的！让我扫描新模块...
+
+发现模块：payment/
+- 文件：payment_processor.py, stripe_client.py
+- 主要类：PaymentProcessor, StripeClient
+- API：process_payment(), refund(), get_status()
+
+正在生成技能文档...
+✅ 已生成 .claude/skills/payment/SKILL.md
+```
+
+#### 场景 3: 更新现有技能
+
+```
+你: 我重构了用户认证模块，更新一下技能文档
+
+Claude Code: 明白！我会：
+1. 对比新旧代码变化
+2. 更新API文档
+3. 保留你的自定义注释
+
+正在更新...
+✅ 已更新 .claude/skills/user-auth/SKILL.md
+✅ 变更日志已记录到 .claude/CHANGES.md
+```
+
+#### 场景 4: 生成专家团队
+
+```
+你: 根据项目的模块，帮我配置专家团队
+
+Claude Code: 好的！分析模块关系...
+
+发现模块分组：
+- 后端：api, database, auth
+- 前端：ui, components
+- 测试：test_utils, mocks
+
+建议的专家配置：
+1. Backend Expert (后端专家)
+   - 负责：api, database, auth
+   - 技能数：3
+   
+2. Frontend Expert (前端专家)
+   - 负责：ui, components
+   - 技能数：2
+   
+3. QA Expert (测试专家)
+   - 负责：test_utils, mocks
+   - 技能数：2
+
+正在生成配置...
+✅ 已生成 .claude/agents/backend-expert.yaml
+✅ 已生成 .claude/agents/frontend-expert.yaml
+✅ 已生成 .claude/agents/qa-expert.yaml
+✅ 已生成 .claude/agents/team.yaml
+```
+
+### 💬 更多自然语言示例
+
+#### 分析特定模块
+
+```
+你: 分析一下 api 模块，我想了解它的结构
+
+Claude Code: 好的！分析 api 模块...
+
+📁 api/
+├── routes/
+│   ├── user_routes.py (5个端点)
+│   └── auth_routes.py (3个端点)
+├── middleware/
+│   └── auth_middleware.py
+└── schemas/
+    └── user_schema.py
+
+主要功能：
+- 用户CRUD操作
+- 认证和授权
+- 请求验证
+
+需要我为这个模块生成技能文档吗？
+```
+
+#### 询问项目结构
+
+```
+你: 这个项目的模块之间有什么依赖关系？
+
+Claude Code: 分析依赖关系...
+
+依赖关系图：
+api → auth → database
+api → cache
+frontend → api
+
+关键发现：
+- api 模块依赖 auth 和 database
+- auth 提供认证服务给多个模块
+- database 是核心数据层
+
+建议：可以将 auth 独立为微服务
+```
+
+#### 获取建议
+
+```
+你: 我应该如何组织测试技能？
+
+Claude Code: 根据项目分析，建议：
+
+测试技能组织：
+1. unit-tests/
+   - 测试策略
+   - Mock使用指南
+   - 断言最佳实践
+   
+2. integration-tests/
+   - API测试
+   - 数据库测试
+   - 端到端测试
+
+3. performance-tests/
+   - 负载测试
+   - 基准测试
+
+需要我生成这些技能文档吗？
+```
+
+### 🎯 支持的自然语言指令
+
+**分析和生成**:
+- "分析项目并生成技能"
+- "为新模块生成技能"
+- "更新所有技能文档"
+- "重新生成 user-auth 模块的技能"
+
+**查询和理解**:
+- "项目有哪些模块？"
+- "api 模块的主要功能是什么？"
+- "模块之间有什么依赖关系？"
+- "哪些模块需要技能文档？"
+
+**专家团队**:
+- "配置专家团队"
+- "创建后端专家"
+- "优化专家分组"
+- "更新团队配置"
+
+**增量更新**:
+- "更新最近一周的变更"
+- "只更新 api 模块"
+- "检查哪些技能需要更新"
+
+### 🔧 技术实现（可选）
+
+如果你想了解底层实现，这些是 Claude Code 会调用的脚本：
 
 ```bash
-# 1. 进入 skill 目录
-cd /path/to/project-skill-generator
+# 分析项目
+python scripts/analyze_codebase.py . --output analysis.json
 
-# 2. 分析目标代码库
-python scripts/analyze_codebase.py /path/to/your/codebase --output analysis.json
+# AI生成技能
+python scripts/ai_skill_generator.py analysis.json --output .claude/skills/
 
-# 3. 生成技能
-python scripts/enhanced_generate_skill.py analysis.json --output /path/to/your/codebase/.claude/skills/
+# AI生成代理
+python scripts/ai_agent_generator.py analysis.json --output .claude/agents/
 
-# 4. 生成专家代理
-python scripts/enhanced_generate_agent.py analysis.json --output /path/to/your/codebase/.claude/agents/
+# 增量更新
+python scripts/update_skills.py . --since 2024-01-01
 ```
+
+但通常你不需要直接运行这些命令，**用自然语言告诉我就行**！
 
 ## 🔄 增量更新现有技能库
 
