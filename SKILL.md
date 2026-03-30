@@ -1,6 +1,6 @@
 ---
 name: project-skill-generator
-version: 0.1.7
+version: 0.1.8
 status: production-ready
 success_rate: 95%+
 description: >
@@ -13,9 +13,21 @@ validated_repos: 15/15
 
 # Project Skill Generator
 
-**版本**: v0.1.7 | **状态**: ✅ 生产就绪 | **成功率**: 95%+
+**版本**: v0.1.8 | **状态**: ✅ 生产就绪 | **成功率**: 95%+
 
-将任意代码库转换为 Claude Code 的专业技能和专家代理系统。
+**对话式** AI驱动的代码库分析和技能生成工具。
+
+## 💬 最简单的使用方式
+
+**直接用自然语言和 Claude Code 对话**：
+
+```
+你: 帮我分析项目并生成技能文档
+
+Claude: 好的！开始分析...
+✅ 发现 15 个模块
+✅ 已生成技能和专家配置
+```
 
 ## 🎯 核心功能
 
