@@ -1,0 +1,13 @@
+agents:
+- general-expert
+communication:
+  conflict_resolution: escalate-to-user
+  style: async
+  update_frequency: per-task
+coordination:
+  parallel_execution: true
+  review_process: peer-review
+  task_routing: by-expertise
+description: Coordinated team of specialized agents
+name: project-team
+workflow: []

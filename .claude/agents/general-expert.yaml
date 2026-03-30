@@ -1,0 +1,33 @@
+avoids:
+- technical debt
+- code duplication
+- poor documentation
+capabilities:
+- Manage resources with context managers
+- Add type annotations
+- Use demo_full_pipeline()
+- Use demo_incremental_update()
+- Use check_file()
+- Use check_executable()
+- Use main()
+constraints:
+- Only modify general-related files
+- Follow existing code patterns
+- Maintain backward compatibility
+- Write tests for new functionality
+description: 'Specialized agent for general domain. Expert in modules: .'
+file_patterns:
+- /project-skill-generator/__init__.py
+- /project-skill-generator/demo.py
+- /project-skill-generator/validate.py
+focuses_on:
+- code quality
+- maintainability
+- best practices
+modules:
+- .
+name: general-expert
+role: General Expert
+skills:
+- ''
+style: thorough, professional, detail-oriented
