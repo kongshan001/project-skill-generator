@@ -13,6 +13,44 @@
 - 代理团队配置（协同开发）
 - 持续更新机制
 
+## 💡 设计理念：AI-First + 工具辅助
+
+### 架构优势
+
+本项目采用**AI-First架构**：
+
+```
+工具层（辅助）    →  代码分析、数据提取、上下文优化
+    ↓
+AI层（核心）     →  语义理解、创意生成、专业内容
+    ↓
+输出层（验证）   →  质量检查、格式验证、结果保存
+```
+
+**为什么AI生成更好？**
+
+| 方面 | 规则生成（旧） | AI生成（新） |
+|------|--------------|------------|
+| 语义理解 | ❌ 基于关键词 | ✅ 真正理解代码 |
+| 文档质量 | ⚠️ 模板化，泛泛而谈 | ✅ 专业、详细、实用 |
+| 适应性 | ❌ 固定规则 | ✅ 根据项目定制 |
+| 创造性 | ❌ 无 | ✅ 提供深度见解 |
+| 成本 | ✅ 免费，秒级 | ⚠️ Claude Code免费，其他收费 |
+
+**工具的职责**:
+- ✅ 代码扫描和结构分析
+- ✅ 数据提取和格式化
+- ✅ 上下文优化（减少token消耗）
+- ✅ 结果验证和保存
+
+**AI的职责**:
+- ✅ 理解代码语义和业务逻辑
+- ✅ 生成专业的技能文档
+- ✅ 创建智能的Agent配置
+- ✅ 提供最佳实践建议
+
+详见：`docs/AI_FIRST_ARCHITECTURE.md`
+
 ## ✨ 最新特性 (v0.1.7)
 
 ### 🔥 Agent 领域专家模式（新功能！）
@@ -60,20 +98,38 @@
 
 ## 🚀 使用方法
 
-### 方式一：直接放到项目中（推荐）
+### 方式一：AI生成（推荐）🤖
 
 ```bash
 # 1. 将此 skill 复制到你的项目
 cp -r project-skill-generator /your/project/.claude/skills/
 
-# 2. 在项目目录下运行分析
+# 2. 分析项目结构
 cd /your/project
-python .claude/skills/project-skill-generator/scripts/analyze_codebase.py . --output analysis.json
+python .claude/skills/project-skill-generator/scripts/analyze_codebase.py . --output .claude/analysis.json
 
-# 3. 生成技能
+# 3. AI生成技能（使用Claude Code或其他LLM）
+python .claude/skills/project-skill-generator/scripts/ai_skill_generator.py .claude/analysis.json \
+  --output .claude/skills/ \
+  --ai auto
+
+# 4. AI生成专家代理
+python .claude/skills/project-skill-generator/scripts/ai_agent_generator.py .claude/analysis.json \
+  --output .claude/agents/ \
+  --ai auto
+```
+
+**AI后端选择**:
+- `--ai auto`: 自动选择最佳可用后端（推荐）
+- `--ai claude-code`: 使用Claude Code（免费，本地）
+- `--ai openai`: 使用OpenAI API（需要API Key）
+- `--ai anthropic`: 使用Anthropic API（需要API Key）
+
+### 方式二：传统生成（降级方案）
+
+```bash
+# 如果没有AI可用，使用规则引擎生成
 python .claude/skills/project-skill-generator/scripts/enhanced_generate_skill.py analysis.json --output .claude/skills/
-
-# 4. 生成专家代理
 python .claude/skills/project-skill-generator/scripts/enhanced_generate_agent.py analysis.json --output .claude/agents/
 ```
 
