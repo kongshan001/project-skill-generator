@@ -4,196 +4,277 @@ version: 0.1.7
 status: production-ready
 success_rate: 95%+
 description: >
-  Analyze large codebases and generate project-specific Claude Code skills and expert agents.
-  Use when: (1) Onboarding a new codebase to Claude Code, (2) Creating module-specific expert agents,
-  (3) Generating .claude directory with skills/agents structure, (4) Updating skills as codebase evolves,
-  (5) Building a team of specialized agents for different modules.
+  分析大型代码库并生成项目专属的 Claude Code 技能和专家代理。
+  使用场景：(1) 将新代码库接入 Claude Code，(2) 创建模块专属的专家代理，
+  (3) 生成 .claude 目录的 skills/agents 结构，(4) 随代码库演进更新技能，
+  (5) 为不同模块构建专业化的代理团队。
 validated_repos: 15/15
 ---
 
 # Project Skill Generator
 
-**Version**: v0.1.7 | **Status**: ✅ Production Ready | **Success Rate**: 95%+
+**版本**: v0.1.7 | **状态**: ✅ 生产就绪 | **成功率**: 95%+
 
-Transform any codebase into a Claude Code powerhouse with specialized skills and **domain expert agents**.
+将任意代码库转换为 Claude Code 的专业技能和专家代理系统。
 
-## What This Skill Does
+## 🎯 核心功能
 
-**Input**: A codebase path
-**Output**: Complete `.claude/` directory with:
-- Project-specific skills (APIs, patterns, conventions)
-- **Domain expert agents** (one-to-many skill relationship)
-- Agent team configuration for coordinated development
-- Continuous update mechanism
+**输入**: 代码库路径  
+**输出**: 完整的 `.claude/` 目录，包含：
+- 项目专属技能（API、模式、规范）
+- **领域专家代理**（一对多技能关系）
+- 代理团队配置（协同开发）
+- 持续更新机制
 
-## ✨ Latest Features (v0.1.7)
+## ✨ 最新特性 (v0.1.7)
 
-### 🔥 Agent Domain Expert Mode (NEW!)
+### 🔥 Agent 领域专家模式（新功能！）
 
-**Traditional Approach**: 1 agent = 1 skill (fragmented)
+**传统方法**: 1 个代理 = 1 个技能（碎片化）
 ```
-❌ Too many specialized agents:
+❌ 过度细分的代理：
 - login-handler-agent
 - password-validator-agent
 - session-manager-agent
 - token-generator-agent
-... (8 separate agents)
+... (8 个独立代理)
 ```
 
-**Domain Expert Approach**: 1 agent = multiple related skills (professional)
+**领域专家方法**: 1 个代理 = 多个相关技能（专业化）
 ```
-✅ Cohesive expert team:
-- Authentication Expert
-  * Handles login, password validation, session, tokens
-  * Manages OAuth integration, security best practices
-  * Oversees authorization and RBAC implementation
-  * 17.9 skills average per expert
+✅ 协调的专家团队：
+- Authentication Expert（认证专家）
+  * 处理登录、密码验证、会话、令牌
+  * 管理 OAuth 集成、安全最佳实践
+  * 监督授权和 RBAC 实现
+  * 平均 17.9 个技能/专家
 ```
 
-**Key Benefits**:
-- **Reduced Fragmentation**: From 8 agents to 1 expert
-- **Better Context**: Each expert has comprehensive domain knowledge
-- **Senior-Level**: All experts default to 10+ years experience
-- **Team Coordination**: Built-in collaboration and task allocation
+**核心优势**:
+- **减少碎片化**: 从 8 个代理合并为 1 个专家
+- **更好的上下文**: 每个专家具备全面的领域知识
+- **资深级别**: 所有专家默认 10+ 年经验
+- **团队协作**: 内置协作和任务分配机制
 
-### 📊 Verified Performance
+### 📊 经过验证的性能
 
-Validated across **15 repositories** with **95%+ success rate**:
-- ✅ **Maximum project**: 38 modules, 85,844 lines (wangzhe-chess)
-- ✅ **Average generation**: 16.4 skills + 2.8 agents per project
-- ✅ **Languages**: Python, JavaScript/TypeScript, C++, Shell
-- ✅ **Frameworks**: Next.js, React, Vue, FastAPI
+在 **15 个仓库**中验证，**95%+ 成功率**：
+- ✅ **最大项目**: 38 个模块, 85,844 行代码
+- ✅ **平均生成**: 16.4 个技能 + 2.8 个代理/项目
+- ✅ **语言支持**: Python, JavaScript/TypeScript, C++, Shell
+- ✅ **框架支持**: Next.js, React, Vue, FastAPI
 
-## Quick Start
+## 🚀 快速开始
 
-### Method 1: Direct Script Execution (Recommended)
+### 方式一：直接放到项目中（推荐）
 
 ```bash
-# 1. Navigate to skill directory
+# 1. 将此 skill 复制到你的项目
+cp -r project-skill-generator /your/project/.claude/skills/
+
+# 2. 在项目目录下运行分析
+cd /your/project
+python .claude/skills/project-skill-generator/scripts/analyze_codebase.py . --output analysis.json
+
+# 3. 生成技能
+python .claude/skills/project-skill-generator/scripts/enhanced_generate_skill.py analysis.json --output .claude/skills/
+
+# 4. 生成专家代理
+python .claude/skills/project-skill-generator/scripts/enhanced_generate_agent.py analysis.json --output .claude/agents/
+```
+
+### 方式二：独立使用
+
+```bash
+# 1. 进入 skill 目录
 cd /path/to/project-skill-generator
 
-# 2. Analyze your codebase
+# 2. 分析目标代码库
 python scripts/analyze_codebase.py /path/to/your/codebase --output analysis.json
 
-# 3. Generate detailed skills
-python scripts/enhanced_generate_skill.py analysis.json --output .claude/skills/
+# 3. 生成技能
+python scripts/enhanced_generate_skill.py analysis.json --output /path/to/your/codebase/.claude/skills/
 
-# 4. Generate domain expert agents
-python scripts/enhanced_generate_agent.py analysis.json --output .claude/agents/
+# 4. 生成专家代理
+python scripts/enhanced_generate_agent.py analysis.json --output /path/to/your/codebase/.claude/agents/
 ```
 
-### Method 2: Step-by-Step (More Control)
+## 🔄 增量更新现有技能库
+
+当项目已有技能库时，使用增量更新模式：
 
 ```bash
-# 1. Analyze codebase with specific depth
-python scripts/analyze_codebase.py /path/to/codebase --depth deep --output analysis.json
+# 基于最近的提交更新
+python scripts/update_skills.py /path/to/codebase --since 2024-01-01
 
-# 2. Generate skills with customization
-python scripts/enhanced_generate_skill.py analysis.json --output .claude/skills/
+# 更新特定模块
+python scripts/update_skills.py /path/to/codebase --module user-auth
 
-# 3. Create expert agents with team config
-python scripts/enhanced_generate_agent.py analysis.json --output .claude/agents/
-
-# 4. Update existing skills (after codebase changes)
-python scripts/update_skills.py /path/to/codebase --diff HEAD~10
+# 完全重新分析（大型重构后）
+python scripts/update_skills.py /path/to/codebase --full
 ```
 
-### What Gets Generated
+**增量更新会**:
+- ✅ 保留现有技能的元数据和配置
+- ✅ 更新 API 文档和示例
+- ✅ 添加新发现的模式
+- ✅ 标记已废弃的代码
+- ✅ 合并测试策略
 
-**Skills** (for each module):
-- API documentation with parameters and return types
-- Common patterns and anti-patterns
-- Testing strategies with examples
-- Performance considerations and optimizations
+### 生成内容
 
-**Domain Expert Agents** (example from Cocos2d-x project):
-- **Rendering Engine Expert** (32 skills): 2D/3D rendering, graphics pipeline, shaders
-- **Core Architecture Expert** (50 skills): Service management, utilities, event system
-- **UI System Expert** (27 skills): UI components, layout engine, input handling
-- **Animation System Expert** (11 skills): Sprite animation, tweening, timeline
-- **Physics Engine Expert** (2 skills): 2D/3D physics simulation, collision detection
-- **Resource Management Expert** (3 skills): Asset loading, memory management, caching
-- **Network System Expert** (1 skill): Multiplayer networking, synchronization
+**技能**（每个模块）:
+- 带参数和返回类型的 API 文档
+- 常见模式和反模式
+- 带示例的测试策略
+- 性能考虑和优化
 
-## Workflow
+**领域专家代理**（Cocos2d-x 项目示例）:
+- **Rendering Engine Expert**（渲染引擎专家，32 个技能）: 2D/3D 渲染、图形管线、shader
+- **Core Architecture Expert**（核心架构专家，50 个技能）: 服务管理、工具类、事件系统
+- **UI System Expert**（UI 系统专家，27 个技能）: UI 组件、布局引擎、输入处理
+- **Animation System Expert**（动画系统专家，11 个技能）: 精灵动画、补间动画、时间线
+- **Physics Engine Expert**（物理引擎专家，2 个技能）: 2D/3D 物理模拟、碰撞检测
+- **Resource Management Expert**（资源管理专家，3 个技能）: 资产加载、内存管理、缓存
+- **Network System Expert**（网络系统专家，1 个技能）: 多人游戏网络、同步
 
-### Phase 1: Codebase Analysis
+## 🏗️ 输出结构
 
-The analysis extracts:
+```
+.claude/
+├── CLAUDE.md                 # 项目概览
+├── settings.json             # Claude Code 设置
+├── skills/
+│   ├── user-auth/            # 已有技能（保留）
+│   │   └── SKILL.md
+│   ├── api-core/             # 新生成技能
+│   │   └── SKILL.md
+│   ├── database/
+│   │   └── SKILL.md
+│   └── frontend-ui/
+│       └── SKILL.md
+├── agents/
+│   ├── auth-expert.yaml      # 认证专家
+│   ├── api-expert.yaml       # API 专家
+│   ├── db-expert.yaml        # 数据库专家
+│   ├── ui-expert.yaml        # UI 专家
+│   └── team.yaml             # 团队配置
+└── references/
+    ├── architecture.md       # 系统架构
+    ├── conventions.md        # 编码规范
+    └── api-contracts.md      # API 文档
+```
 
-**Structure**:
-- Module boundaries and responsibilities
-- Dependency graph
-- Entry points and public APIs
+## 🔄 增量更新策略
 
-**Patterns**:
-- Coding conventions (naming, formatting)
-- Architectural patterns (MVC, microservices, etc.)
-- Common idioms and utilities
+### 1. 智能合并
+```bash
+# 系统会识别：
+- 已存在的技能 → 更新内容，保留自定义配置
+- 新发现的模块 → 生成新技能
+- 已废弃的代码 → 标记为 deprecated
+- 重命名的模块 → 迁移到新名称
+```
 
-**Domain Knowledge**:
-- Business logic patterns
-- API contracts and data models
-- Testing strategies
-- Configuration patterns
+### 2. 版本控制
+```bash
+# 每次更新都会：
+- 备份现有技能到 .claude/backups/
+- 生成更新日志 CHANGES.md
+- 保留用户的自定义注释
+- 记录技能的演进历史
+```
 
-**Output**: `analysis.json` containing structured codebase knowledge
+### 3. 冲突处理
+```bash
+# 当检测到冲突时：
+- 优先保留用户自定义内容
+- 自动合并不冲突的部分
+- 标记需要手动审核的部分
+- 提供合并建议
+```
 
-### Phase 2: Skill Generation
+## 🎯 工作流程
 
-For each identified module, generate a skill containing:
+### 阶段 1: 代码库分析
+
+分析提取内容：
+
+**结构**:
+- 模块边界和职责
+- 依赖关系图
+- 入口点和公共 API
+
+**模式**:
+- 编码规范（命名、格式）
+- 架构模式（MVC、微服务等）
+- 常用惯用法和工具
+
+**领域知识**:
+- 业务逻辑模式
+- API 契约和数据模型
+- 测试策略
+- 配置模式
+
+**输出**: 包含结构化代码库知识的 `analysis.json`
+
+### 阶段 2: 技能生成
+
+为每个识别的模块生成技能：
 
 ```markdown
 # Module: user-auth
 
-## Domain Expertise
-- OAuth2 flow implementation
-- Session management patterns
-- Password hashing (bcrypt)
+## Domain Expertise（领域专业知识）
+- OAuth2 流程实现
+- 会话管理模式
+- 密码哈希（bcrypt）
 
-## Key APIs
-- `AuthService.login()` - Authenticate user
-- `TokenManager.refresh()` - Refresh access token
-- `SessionStore.get()` - Retrieve session data
+## Key APIs（关键 API）
+- `AuthService.login()` - 用户认证
+- `TokenManager.refresh()` - 刷新访问令牌
+- `SessionStore.get()` - 检索会话数据
 
-## Common Patterns
+## Common Patterns（常见模式）
 ```python
-# Standard auth flow
+# 标准认证流程
 auth = AuthService()
 token = auth.login(credentials)
 session = SessionStore.create(token)
 ```
 
-## Code Conventions
-- Use `@require_auth` decorator for protected routes
-- Always validate with `UserSchema` before DB operations
-- Return `AuthResponse` model from auth endpoints
+## Code Conventions（代码规范）
+- 对受保护的路由使用 `@require_auth` 装饰器
+- 数据库操作前总是用 `UserSchema` 验证
+- 从认证端点返回 `AuthResponse` 模型
 ```
 
-### Phase 3: Agent Creation
+### 阶段 3: 代理创建
 
-Create specialized agents with focused skill sets:
+创建具有聚焦技能集的专业化代理：
 
 ```yaml
 # .claude/agents/auth-expert.yaml
 name: auth-expert
-role: Authentication & Authorization Specialist
+role: 认证与授权专家
+level: senior
+experience: 10+ years
 skills:
   - user-auth
   - api-security
   - session-management
 capabilities:
-  - Implement OAuth flows
-  - Design auth middleware
-  - Audit security issues
-  - Refactor auth logic
+  - 实现 OAuth 流程
+  - 设计认证中间件
+  - 审计安全问题
+  - 重构认证逻辑
 constraints:
-  - Only modify auth-related files
-  - Follow existing security patterns
-  - Maintain backward compatibility
+  - 只修改认证相关文件
+  - 遵循现有的安全模式
+  - 保持向后兼容性
 ```
 
-### Phase 4: Agent Team Configuration
+### 阶段 4: 代理团队配置
 
 ```yaml
 # .claude/agents/team.yaml
@@ -204,92 +285,85 @@ agents:
   - db-expert
   - cache-expert
 workflow:
-  - api-expert: Design endpoints
-  - auth-expert: Add authentication
-  - db-expert: Implement data layer
-  - cache-expert: Optimize performance
+  - api-expert: 设计端点
+  - auth-expert: 添加认证
+  - db-expert: 实现数据层
+  - cache-expert: 优化性能
 ```
 
-## Output Structure
+## 📚 最佳实践
 
-```
-.claude/
-├── CLAUDE.md                 # Project overview
-├── settings.json             # Claude Code settings
-├── skills/
-│   ├── user-auth/
-│   │   └── SKILL.md
-│   ├── api-core/
-│   │   └── SKILL.md
-│   ├── database/
-│   │   └── SKILL.md
-│   └── frontend-ui/
-│       └── SKILL.md
-├── agents/
-│   ├── auth-expert.yaml
-│   ├── api-expert.yaml
-│   ├── db-expert.yaml
-│   ├── ui-expert.yaml
-│   └── team.yaml
-└── references/
-    ├── architecture.md       # System architecture
-    ├── conventions.md        # Coding standards
-    └── api-contracts.md      # API documentation
-```
+### 1. 模块边界检测
+- 从目录结构开始
+- 基于导入分析细化
+- 使用 `__init__.py` 或 `index.ts` 验证
+- 考虑语义内聚性
 
-## Continuous Iteration
+### 2. 技能粒度
+- **太粗**: "backend" 技能（过于通用）
+- **太细**: "user-login-function" 技能（过于狭窄）
+- **恰到好处**: "user-authentication" 技能（聚焦且可复用）
 
-### Update Skills After Changes
+### 3. 代理专业化
+- 匹配真实团队结构
+- 明确的责任边界
+- 最小化技能重叠
+- 互补的能力
+
+### 4. 迭代策略
+- 活跃项目每周更新
+- 重大重构后更新
+- 对 `.claude/` 目录进行版本控制
+- 在 PR 中审查技能变更
+
+## 🛠️ 故障排除
+
+### 技能过于通用
+**问题**: 生成的技能太高层  
+**解决**: 增加分析深度或提供更具体的代码示例
+
+### 代理重叠
+**问题**: 多个代理有相同技能  
+**解决**: 细化模块边界，创建更具体的代理角色
+
+### 缺少领域知识
+**问题**: 技能没有捕获业务逻辑  
+**解决**: 使用 `--depth deep` 或手动补充 `references/`
+
+### 生成速度慢
+**问题**: 大型代码库耗时太长  
+**解决**: 先分析特定模块，使用 `--depth quick`
+
+## 📈 分析深度级别
+
+### Quick（快速，默认）
+- 模块结构
+- 公共 API
+- 基本模式
+- **时间**: 每 1万行代码约 1 分钟
+
+### Standard（标准）
+- Quick + 私有 API
+- 依赖分析
+- 规范提取
+- **时间**: 每 1万行代码约 3 分钟
+
+### Deep（深度）
+- Standard + 语义分析
+- 业务逻辑提取
+- 测试覆盖模式
+- 性能模式
+- **时间**: 每 1万行代码约 10 分钟
 
 ```bash
-# Update based on recent commits
-/update-skills /path/to/codebase --since 2024-01-01
-
-# Update specific module
-/update-skills /path/to/codebase --module user-auth
-
-# Full re-analysis (major refactors)
-/update-skills /path/to/codebase --full
+python scripts/analyze_codebase.py /path --depth deep
 ```
 
-### What Gets Updated
+## 🎨 自定义
 
-- **New patterns**: Detected and added to skills
-- **API changes**: Reflected in skill documentation
-- **Deprecated code**: Marked in skills
-- **New modules**: Generate new skills and agents
-- **Agent capabilities**: Updated based on module changes
+### 技能模板
 
-## Analysis Depth Levels
-
-### Quick (Default)
-- Module structure
-- Public APIs
-- Basic patterns
-- **Time**: ~1 min per 10k LOC
-
-### Standard
-- Quick + private APIs
-- Dependency analysis
-- Convention extraction
-- **Time**: ~3 min per 10k LOC
-
-### Deep
-- Standard + semantic analysis
-- Business logic extraction
-- Test coverage patterns
-- Performance patterns
-- **Time**: ~10 min per 10k LOC
-
-```bash
-/analyze-codebase /path --depth deep
-```
-
-## Customization
-
-### Skill Templates
-
-Create `skill-templates.yaml` to customize generated skills:
+创建 `skill-templates.yaml` 自定义生成的技能：
 
 ```yaml
 templates:
@@ -309,9 +383,9 @@ templates:
       - accessibility
 ```
 
-### Agent Personas
+### 代理人格
 
-Define agent personalities in `agent-personas.yaml`:
+在 `agent-personas.yaml` 中定义代理个性：
 
 ```yaml
 personas:
@@ -326,263 +400,20 @@ personas:
     avoids: over-engineering
 ```
 
-## Best Practices
+## 🔮 未来增强
 
-### 1. Module Boundary Detection
-- Start with directory structure
-- Refine based on import analysis
-- Validate with `__init__.py` or `index.ts`
-- Consider semantic cohesion
-
-### 2. Skill Granularity
-- **Too coarse**: "backend" skill (too generic)
-- **Too fine**: "user-login-function" skill (too narrow)
-- **Just right**: "user-authentication" skill (focused, reusable)
-
-### 3. Agent Specialization
-- Match real team structure
-- Clear responsibility boundaries
-- Minimal skill overlap
-- Complementary capabilities
-
-### 4. Iteration Strategy
-- Update weekly for active projects
-- Update after major refactors
-- Version control `.claude/` directory
-- Review skill changes in PRs
-
-## Troubleshooting
-
-### Skill Too Generic
-**Problem**: Generated skill is too high-level
-**Solution**: Increase analysis depth or provide more specific code examples
-
-### Agent Overlap
-**Problem**: Multiple agents have same skills
-**Solution**: Refine module boundaries, create more specific agent roles
-
-### Missing Domain Knowledge
-**Problem**: Skill doesn't capture business logic
-**Solution**: Use `--depth deep` or manually augment with `references/`
-
-### Slow Generation
-**Problem**: Large codebase takes too long
-**Solution**: Analyze specific modules first, use `--depth quick`
-
-## Scripts
-
-All scripts are in `scripts/` directory:
-
-- `analyze_codebase.py` - Main analysis engine
-- `extract_patterns.py` - Pattern extraction
-- `generate_skill.py` - Skill generation
-- `generate_agent.py` - Agent configuration generator
-- `update_skills.py` - Incremental update logic
-- `validate_output.py` - Validate generated structure
-
-Run any script directly:
-```bash
-python scripts/analyze_codebase.py /path/to/codebase
-```
-
-## Examples
-
-### Example 1: FastAPI Project
-
-```bash
-/generate-project-skills ./my-fastapi-app
-
-# Output:
-.claude/
-├── skills/
-│   ├── api-routes/      # FastAPI route handlers
-│   ├── models/          # SQLAlchemy models
-│   ├── auth/            # JWT authentication
-│   └── schemas/         # Pydantic schemas
-├── agents/
-│   ├── api-expert.yaml
-│   ├── db-expert.yaml
-│   └── auth-expert.yaml
-```
-
-### Example 2: React + Node.js Monorepo
-
-```bash
-/generate-project-skills ./monorepo --modules frontend,backend,shared
-
-# Output:
-.claude/
-├── skills/
-│   ├── frontend/
-│   │   ├── components/
-│   │   └── state-management/
-│   ├── backend/
-│   │   ├── api/
-│   │   └── services/
-│   └── shared/
-│       └── types/
-├── agents/
-│   ├── frontend-expert.yaml
-│   ├── backend-expert.yaml
-│   └── fullstack-expert.yaml
-```
-
-### Example 3: Legacy Code Migration
-
-```bash
-# Step 1: Analyze legacy code
-/analyze-codebase ./legacy-app --output legacy-analysis.json
-
-# Step 2: Generate skills for understanding
-/generate-skills legacy-analysis.json --mode documentation
-
-# Step 3: After modernization, regenerate
-/update-skills ./modernized-app --baseline legacy-analysis.json
-```
-
-## Advanced: Multi-Repository Setup
-
-For monorepos or multi-service architectures:
-
-```bash
-# Generate shared skills first
-/generate-project-skills ./shared-libs --output .claude/shared/
-
-# Then generate service-specific skills
-/generate-project-skills ./service-a --inherit .claude/shared/
-/generate-project-skills ./service-b --inherit .claude/shared/
-```
-
-## Integration with Development Workflow
-
-### Pre-commit Hook
-```bash
-# .git/hooks/pre-commit
-python .claude/scripts/update_skills.py . --quick
-git add .claude/
-```
-
-### CI/CD Pipeline
-```yaml
-# .github/workflows/update-skills.yml
-- name: Update Claude Skills
-  run: |
-    python .claude/scripts/update_skills.py . --diff ${{ github.event.before }}
-    # Create PR if skills changed
-```
-
-### IDE Integration
-Skills are automatically loaded when:
-- Opening project in Claude Code
-- Running `/use-skill <skill-name>`
-- Agent activation
-
-## 📊 Real-World Validation Results
-
-### Production Ready (v0.1.7)
-
-**Validated Repositories**: 15/15 (100% completion)
-**Success Rate**: 95%+ across all project types
-**Total Generated**: 167 skills, 38 domain expert agents
-
-#### Successfully Validated Projects
-
-**Large-Scale Projects**:
-- ✅ **wangzhe-chess**: 38 modules, 85,844 lines, 5 domain experts
-- ✅ **render-pipeline-framework**: 5 modules, rendering pipeline, 3 experts
-- ✅ **clawhub-lab**: 8 modules (C++), 4 experts
-
-**Medium Projects**:
-- ✅ **opencode-demo**: 6 modules, 3 experts
-- ✅ **feishu_chatbot**: 9 modules (JS/TS hybrid), 3 experts
-- ✅ **game-frame-sync**: 3 modules, 2 experts
-
-**Small Projects**:
-- ✅ **voice-chat-demo**: 1 module, 2 experts
-- ✅ **game-auto-test**: 2 modules, 2 experts
-- ✅ **cc_plugin**: 4 modules (Shell), 2 experts
-
-**Modern Frameworks**:
-- ✅ **claudegui**: Next.js App Router support
-- ✅ **opencode-plugins**: Plugin system architecture
-
-### Real-World Example: Cocos2d-x Game Engine
-
-**Before Optimization**:
-```
-❌ 8 fragmented single-skill agents:
-- 2d-rendering-agent
-- 3d-rendering-agent
-- animation-agent
-- physics-2d-agent
-- physics-3d-agent
-- audio-agent
-- network-agent
-- service-agent
-```
-
-**After Optimization (Domain Expert Mode)**:
-```
-✅ 7 cohesive domain experts:
-1. Rendering Engine Expert (32 skills)
-   - 2D/3D rendering pipeline
-   - OpenGL/DirectX integration
-   - Shader management
-   - Batch rendering optimization
-
-2. Core Architecture Expert (50 skills)
-   - Service locator pattern
-   - Module lifecycle
-   - Event system
-   - Memory management
-
-3. UI System Expert (27 skills)
-   - Widget system
-   - Layout engine
-   - Input handling
-   - Theme management
-
-4. Animation System Expert (11 skills)
-5. Physics Engine Expert (2 skills)
-6. Audio System Expert (1 skill)
-7. Network System Expert (1 skill)
-
-Average: 17.9 skills per expert
-All experts: Senior level (10+ years experience)
-```
-
-### Performance Metrics
-
-| Metric | Value |
-|--------|-------|
-| Maximum modules supported | 38 (85,844 lines) |
-| Average skills per project | 16.4 |
-| Average agents per project | 2.8 |
-| Analysis time (avg) | < 30 seconds |
-| Languages supported | Python, JS/TS, C++, Shell |
-| Framework support | Next.js, React, Vue, FastAPI |
-
-### Key Achievements
-
-1. **Enterprise-Grade Stability**: 95%+ success rate in production
-2. **Intelligent Agent Grouping**: From fragmented to cohesive experts
-3. **Multi-Language Support**: Python, JS/TS, C++, Shell
-4. **Modern Framework Compatibility**: Next.js, React, Vue
-5. **Automated Quality Assurance**: Continuous validation system
-
-## 🔮 Future Enhancements
-
-- [x] Agent Domain Expert Mode (v0.1.7)
-- [x] Multi-language support (Python, JS/TS, C++, Shell)
-- [x] Next.js/React framework support
-- [x] Automated validation system (15/15 repos)
-- [ ] Support for more languages (Rust, Go, Java)
-- [ ] ML-based pattern detection
-- [ ] Web-based skill management UI
-- [ ] Skill marketplace
+- [x] Agent 领域专家模式（v0.1.7）
+- [x] 多语言支持（Python, JS/TS, C++, Shell）
+- [x] Next.js/React 框架支持
+- [x] 自动化验证系统（15/15 仓库）
+- [x] 增量更新模式
+- [ ] 支持更多语言（Rust, Go, Java）
+- [ ] 基于机器学习的模式检测
+- [ ] Web 界面的技能管理
+- [ ] 技能市场
 
 ---
 
-**Transform your codebase into Claude Code expertise.** 🚀
+**将你的代码库转换为 Claude Code 的专业知识。** 🚀
 
-**Status**: ✅ Production Ready | **Version**: v0.1.7 | **Success Rate**: 95%+
+**状态**: ✅ 生产就绪 | **版本**: v0.1.7 | **成功率**: 95%+

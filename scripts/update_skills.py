@@ -1,422 +1,370 @@
 #!/usr/bin/env python3
 """
-Skill Updater - Incrementally update skills based on codebase changes
-
-Usage:
-    update_skills.py <codebase-path> [options]
-
-Options:
-    --since DATE          Update based on changes since date (YYYY-MM-DD)
-    --diff COMMIT         Update based on changes since commit
-    --module NAME         Update specific module only
-    --full                Full re-analysis (major refactors)
-    --dry-run             Show what would be updated without making changes
+增量更新技能库 - 基于现有技能进行智能更新
+支持保留用户自定义内容，合并新发现的模式
 """
 
-import argparse
+import os
+import sys
 import json
-import subprocess
+import yaml
+import argparse
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, List, Set, Optional
-from dataclasses import dataclass
+from datetime import datetime
+from typing import Dict, List, Optional, Set
+import subprocess
 
-
-@dataclass
-class Change:
-    """Represents a code change"""
-    file: str
-    type: str  # 'added', 'modified', 'deleted'
-    module: str
-    impact_level: str  # 'low', 'medium', 'high'
-
-
-class SkillUpdater:
-    """Update skills based on codebase changes"""
+class IncrementalSkillUpdater:
+    """增量技能更新器"""
     
-    def __init__(self, codebase_path: str, claude_dir: str = ".claude"):
-        self.root = Path(codebase_path).resolve()
-        self.claude_dir = self.root / claude_dir
-        self.skills_dir = self.claude_dir / "skills"
-        self.agents_dir = self.claude_dir / "agents"
-        self.analysis_file = self.claude_dir / "analysis.json"
+    def __init__(self, codebase_path: str, output_dir: str):
+        self.codebase_path = Path(codebase_path)
+        self.output_dir = Path(output_dir)
+        self.skills_dir = self.output_dir / '.claude' / 'skills'
+        self.backup_dir = self.output_dir / '.claude' / 'backups'
+        self.changes_file = self.output_dir / '.claude' / 'CHANGES.md'
         
-    def update(self, since: Optional[str] = None, diff: Optional[str] = None,
-               module: Optional[str] = None, full: bool = False, dry_run: bool = False):
-        """Update skills based on changes"""
+    def analyze_existing_skills(self) -> Dict[str, Dict]:
+        """分析现有技能库"""
+        existing_skills = {}
         
-        if full:
-            print("🔄 Full re-analysis requested...")
-            self._full_update(dry_run)
-            return
-        
-        # Detect changes
-        changes = self._detect_changes(since, diff, module)
-        
-        if not changes:
-            print("✅ No changes detected. Skills are up to date.")
-            return
-        
-        print(f"🔍 Detected {len(changes)} changes:")
-        for change in changes[:10]:  # Show first 10
-            print(f"   [{change.type}] {change.file}")
-        
-        if len(changes) > 10:
-            print(f"   ... and {len(changes) - 10} more")
-        
-        # Analyze impact
-        impacted_modules = self._analyze_impact(changes)
-        
-        print(f"\n📊 Impact analysis:")
-        for module_name, impact in impacted_modules.items():
-            print(f"   {module_name}: {impact} impact")
-        
-        if dry_run:
-            print("\n⚠️  Dry run mode - no changes made")
-            return
-        
-        # Update affected skills
-        print("\n🔧 Updating skills...")
-        self._update_skills(impacted_modules, changes)
-        
-        # Update agents if needed
-        if self._should_update_agents(changes):
-            print("\n🤖 Updating agents...")
-            self._update_agents(impacted_modules)
-        
-        print("\n✅ Skills updated successfully!")
-    
-    def _detect_changes(self, since: Optional[str], diff: Optional[str],
-                       module: Optional[str]) -> List[Change]:
-        """Detect code changes"""
-        changes = []
-        
-        if diff:
-            # Git diff-based detection
-            changes = self._detect_git_changes(diff)
-        elif since:
-            # Time-based detection
-            changes = self._detect_time_changes(since)
-        else:
-            # Default: last 7 days
-            since_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-            changes = self._detect_time_changes(since_date)
-        
-        # Filter by module if specified
-        if module:
-            changes = [c for c in changes if module in c.module]
-        
-        return changes
-    
-    def _detect_git_changes(self, since_commit: str) -> List[Change]:
-        """Detect changes using git diff"""
-        changes = []
-        
-        try:
-            # Get changed files
-            result = subprocess.run(
-                ['git', 'diff', '--name-status', since_commit],
-                cwd=self.root,
-                capture_output=True,
-                text=True,
-                check=True
-            )
+        if not self.skills_dir.exists():
+            return existing_skills
             
-            for line in result.stdout.strip().split('\n'):
-                if not line:
-                    continue
-                
-                parts = line.split('\t')
-                if len(parts) >= 2:
-                    status = parts[0]
-                    file_path = parts[1]
-                    
-                    change_type = {
-                        'A': 'added',
-                        'M': 'modified',
-                        'D': 'deleted',
-                        'R': 'renamed'
-                    }.get(status[0], 'modified')
-                    
-                    module = self._file_to_module(file_path)
-                    impact = self._assess_impact(file_path, change_type)
-                    
-                    changes.append(Change(
-                        file=file_path,
-                        type=change_type,
-                        module=module,
-                        impact_level=impact
-                    ))
-        
-        except subprocess.CalledProcessError as e:
-            print(f"⚠️  Git command failed: {e}")
-            print("   Falling back to time-based detection")
-            since_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-            return self._detect_time_changes(since_date)
-        
-        return changes
+        for skill_path in self.skills_dir.rglob('SKILL.md'):
+            skill_name = skill_path.parent.name
+            existing_skills[skill_name] = {
+                'path': skill_path,
+                'content': skill_path.read_text(encoding='utf-8'),
+                'metadata': self._extract_skill_metadata(skill_path),
+                'custom_sections': self._extract_custom_sections(skill_path)
+            }
+            
+        return existing_skills
     
-    def _detect_time_changes(self, since_date: str) -> List[Change]:
-        """Detect changes based on file modification time"""
-        changes = []
-        since_dt = datetime.strptime(since_date, '%Y-%m-%d')
+    def _extract_skill_metadata(self, skill_path: Path) -> Dict:
+        """提取技能元数据"""
+        content = skill_path.read_text(encoding='utf-8')
+        metadata = {}
         
-        for file_path in self.root.rglob('*'):
-            if file_path.is_file() and self._is_code_file(file_path):
-                mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
-                
-                if mtime > since_dt:
-                    relative = file_path.relative_to(self.root)
-                    module = self._file_to_module(str(relative))
+        # 提取 frontmatter
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                try:
+                    metadata = yaml.safe_load(parts[1])
+                except:
+                    pass
                     
-                    changes.append(Change(
-                        file=str(relative),
-                        type='modified',
-                        module=module,
-                        impact_level='medium'
-                    ))
-        
-        return changes
+        return metadata
     
-    def _file_to_module(self, file_path: str) -> str:
-        """Convert file path to module name"""
-        parts = Path(file_path).parts
+    def _extract_custom_sections(self, skill_path: Path) -> Dict[str, str]:
+        """提取用户自定义部分"""
+        content = skill_path.read_text(encoding='utf-8')
+        custom_sections = {}
         
-        # Find module (first directory)
-        if len(parts) > 1:
-            return parts[0]
+        # 查找标记为 <!-- custom --> 的部分
+        import re
+        pattern = r'<!-- custom: (\w+) -->(.*?)<!-- end: \1 -->'
+        matches = re.findall(pattern, content, re.DOTALL)
         
-        return 'root'
+        for section_name, section_content in matches:
+            custom_sections[section_name] = section_content.strip()
+            
+        return custom_sections
     
-    def _assess_impact(self, file_path: str, change_type: str) -> str:
-        """Assess impact level of a change"""
-        # High impact files
-        high_impact_patterns = [
-            'model', 'schema', 'config', 'init',
-            'api', 'route', 'endpoint',
-            'auth', 'security'
-        ]
+    def backup_existing_skills(self, existing_skills: Dict):
+        """备份现有技能"""
+        if not existing_skills:
+            return
+            
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_path = self.backup_dir / timestamp
         
-        file_lower = file_path.lower()
+        backup_path.mkdir(parents=True, exist_ok=True)
         
-        if change_type == 'deleted':
-            return 'high'
-        
-        if any(pattern in file_lower for pattern in high_impact_patterns):
-            return 'high'
-        
-        if change_type == 'added':
-            return 'medium'
-        
-        return 'low'
+        for skill_name, skill_data in existing_skills.items():
+            src_path = skill_data['path']
+            dst_path = backup_path / skill_name / 'SKILL.md'
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            dst_path.write_text(skill_data['content'], encoding='utf-8')
+            
+        print(f"✅ 已备份 {len(existing_skills)} 个技能到 {backup_path}")
     
-    def _is_code_file(self, file_path: Path) -> bool:
-        """Check if file is a code file"""
-        code_extensions = {
-            '.py', '.js', '.ts', '.jsx', '.tsx',
-            '.java', '.go', '.rs', '.cpp', '.c',
-            '.rb', '.php', '.cs', '.swift', '.kt'
+    def merge_skills(self, existing: Dict, new: Dict) -> Dict:
+        """合并新旧技能"""
+        merged = {
+            'name': new.get('name', existing.get('name', 'unknown')),
+            'version': f"{datetime.now().strftime('%Y.%m.%d')}",
+            'last_updated': datetime.now().isoformat(),
+            'metadata': {},
+            'sections': {}
         }
         
-        # Skip common non-code directories
-        skip_dirs = {'venv', 'env', 'node_modules', '__pycache__', '.git', 'build', 'dist'}
+        # 合并元数据
+        merged['metadata'].update(existing.get('metadata', {}))
+        merged['metadata'].update(new.get('metadata', {}))
         
-        if any(skip in file_path.parts for skip in skip_dirs):
-            return False
-        
-        return file_path.suffix in code_extensions
+        # 合并内容部分
+        for section in ['domain_expertise', 'key_apis', 'common_patterns', 
+                        'code_conventions', 'testing_strategies', 'performance']:
+            existing_section = existing.get('custom_sections', {}).get(section)
+            new_section = new.get('sections', {}).get(section)
+            
+            if existing_section and new_section:
+                # 智能合并
+                merged['sections'][section] = self._merge_section(
+                    existing_section, new_section
+                )
+            elif existing_section:
+                merged['sections'][section] = existing_section
+            elif new_section:
+                merged['sections'][section] = new_section
+                
+        return merged
     
-    def _analyze_impact(self, changes: List[Change]) -> Dict[str, str]:
-        """Analyze impact of changes on modules"""
-        module_impacts = {}
+    def _merge_section(self, existing: str, new: str) -> str:
+        """合并单个部分"""
+        # 简单的合并策略：保留现有内容，追加新内容
+        # 可以根据需要实现更复杂的合并逻辑
         
-        for change in changes:
-            module = change.module
-            
-            if module not in module_impacts:
-                module_impacts[module] = 'low'
-            
-            # Upgrade impact if necessary
-            if change.impact_level == 'high':
-                module_impacts[module] = 'high'
-            elif change.impact_level == 'medium' and module_impacts[module] == 'low':
-                module_impacts[module] = 'medium'
+        merged_lines = []
+        existing_lines = set(existing.strip().split('\n'))
         
-        return module_impacts
+        # 保留现有内容
+        merged_lines.append("<!-- preserved from previous version -->")
+        merged_lines.append(existing.strip())
+        
+        # 添加新发现的内容
+        new_lines = new.strip().split('\n')
+        new_content = []
+        for line in new_lines:
+            if line.strip() and line not in existing_lines:
+                new_content.append(line)
+                
+        if new_content:
+            merged_lines.append("\n<!-- newly discovered -->")
+            merged_lines.extend(new_content)
+            
+        return '\n'.join(merged_lines)
     
-    def _update_skills(self, impacted_modules: Dict[str, str], changes: List[Change]):
-        """Update affected skills"""
-        for module_name, impact in impacted_modules.items():
-            print(f"   Updating {module_name} (impact: {impact})")
+    def detect_deprecated_code(self, analysis: Dict, existing_skills: Dict) -> List[str]:
+        """检测已废弃的代码"""
+        deprecated = []
+        
+        current_modules = set(analysis.get('modules', {}).keys())
+        existing_modules = set(existing_skills.keys())
+        
+        # 查找已删除的模块
+        deleted_modules = existing_modules - current_modules
+        
+        for module in deleted_modules:
+            deprecated.append(f"模块 '{module}' 已从代码库中移除")
             
-            # Find skill directory
-            skill_dir = self.skills_dir / module_name.replace('.', '-').replace('/', '-')
-            
-            if not skill_dir.exists():
-                print(f"      ⚠️  Skill not found, creating new...")
-                self._create_new_skill(module_name, changes)
-                continue
-            
-            # Update existing skill
-            if impact == 'high':
-                self._full_skill_update(skill_dir, module_name, changes)
-            else:
-                self._incremental_skill_update(skill_dir, module_name, changes)
+        return deprecated
     
-    def _create_new_skill(self, module_name: str, changes: List[Change]):
-        """Create new skill for a new module"""
-        # Import and use analyze_codebase
-        from analyze_codebase import CodebaseAnalyzer
+    def generate_update_report(self, updates: Dict, deprecated: List[str]):
+        """生成更新报告"""
+        report_lines = [
+            f"# 技能库更新日志",
+            f"",
+            f"**更新时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"",
+            f"## 📊 更新统计",
+            f"",
+            f"- **新增技能**: {len(updates.get('new', []))}",
+            f"- **更新技能**: {len(updates.get('updated', []))}",
+            f"- **保留技能**: {len(updates.get('preserved', []))}",
+            f"- **废弃技能**: {len(deprecated)}",
+            f"",
+        ]
         
-        # Analyze the new module
-        module_path = self.root / module_name.replace('.', '/')
-        if module_path.exists():
-            analyzer = CodebaseAnalyzer(str(self.root))
-            # ... generate skill
-            print(f"      ✅ Created new skill for {module_name}")
-    
-    def _full_skill_update(self, skill_dir: Path, module_name: str, changes: List[Change]):
-        """Full skill update for high-impact changes"""
-        # Re-analyze module completely
-        print(f"      🔄 Full re-analysis...")
-        
-        # Import generator
-        from generate_skill import SkillGenerator
-        
-        # Re-generate skill
-        # This would call the analyzer and generator
-        print(f"      ✅ Skill fully updated")
-    
-    def _incremental_skill_update(self, skill_dir: Path, module_name: str, changes: List[Change]):
-        """Incremental skill update for low/medium impact changes"""
-        skill_file = skill_dir / "SKILL.md"
-        
-        if not skill_file.exists():
-            print(f"      ⚠️  SKILL.md not found")
-            return
-        
-        # Read current skill
-        content = skill_file.read_text()
-        
-        # Extract new patterns from changes
-        new_patterns = self._extract_new_patterns(changes)
-        
-        if new_patterns:
-            # Add new patterns to skill
-            patterns_section = "\n### Recently Added Patterns\n"
-            for pattern in new_patterns:
-                patterns_section += f"- {pattern}\n"
+        if updates.get('new'):
+            report_lines.append("## ✨ 新增技能\n")
+            for skill in updates['new']:
+                report_lines.append(f"- **{skill}**: 新发现的模块")
+            report_lines.append("")
             
-            # Insert before last section
-            if "## Usage Guide" in content:
-                content = content.replace("## Usage Guide", patterns_section + "\n## Usage Guide")
-            else:
-                content += "\n" + patterns_section
+        if updates.get('updated'):
+            report_lines.append("## 🔄 更新技能\n")
+            for skill in updates['updated']:
+                report_lines.append(f"- **{skill}**: 内容已更新")
+            report_lines.append("")
             
-            skill_file.write_text(content)
-            print(f"      ✅ Added {len(new_patterns)} new patterns")
+        if deprecated:
+            report_lines.append("## ⚠️ 已废弃\n")
+            for item in deprecated:
+                report_lines.append(f"- {item}")
+            report_lines.append("")
+            
+        report_content = '\n'.join(report_lines)
+        
+        # 追加到现有变更日志
+        if self.changes_file.exists():
+            existing_content = self.changes_file.read_text(encoding='utf-8')
+            report_content = existing_content + "\n\n---\n\n" + report_content
+            
+        self.changes_file.parent.mkdir(parents=True, exist_ok=True)
+        self.changes_file.write_text(report_content, encoding='utf-8')
+        
+        print(f"✅ 更新报告已保存到 {self.changes_file}")
+    
+    def run_incremental_update(self, since: Optional[str] = None, 
+                               module: Optional[str] = None,
+                               full: bool = False):
+        """执行增量更新"""
+        
+        print("🔍 分析现有技能库...")
+        existing_skills = self.analyze_existing_skills()
+        
+        if existing_skills:
+            print(f"✅ 发现 {len(existing_skills)} 个现有技能")
+            self.backup_existing_skills(existing_skills)
         else:
-            print(f"      ℹ️  No new patterns detected")
-    
-    def _extract_new_patterns(self, changes: List[Change]) -> List[str]:
-        """Extract new patterns from changes"""
-        patterns = []
-        
-        for change in changes:
-            if change.type == 'added':
-                patterns.append(f"New file: {Path(change.file).name}")
-            elif change.type == 'modified':
-                # Could analyze the diff for new patterns
-                pass
-        
-        return patterns
-    
-    def _should_update_agents(self, changes: List[Change]) -> bool:
-        """Check if agents should be updated"""
-        # Update agents if:
-        # - New module added
-        # - High impact changes
-        # - Config files changed
-        
-        for change in changes:
-            if change.type == 'added' and change.impact_level == 'high':
-                return True
+            print("ℹ️  未发现现有技能，将进行全新生成")
             
-            if 'config' in change.file.lower():
-                return True
+        # 运行代码库分析
+        print("\n🔍 分析代码库...")
+        analysis_cmd = [
+            sys.executable,
+            str(Path(__file__).parent / 'analyze_codebase.py'),
+            str(self.codebase_path),
+            '--output', str(self.output_dir / '.claude' / 'analysis_new.json')
+        ]
         
-        return False
-    
-    def _update_agents(self, impacted_modules: Dict[str, str]):
-        """Update agent configurations"""
-        # This would update agent YAML files
-        # For now, just print what would be updated
-        
-        for module_name in impacted_modules:
-            agent_file = self.agents_dir / f"{module_name}-expert.yaml"
+        if not full and since:
+            analysis_cmd.extend(['--since', since])
             
-            if agent_file.exists():
-                print(f"   Updated {agent_file.name}")
+        subprocess.run(analysis_cmd, check=True)
+        
+        # 加载新分析结果
+        analysis_file = self.output_dir / '.claude' / 'analysis_new.json'
+        with open(analysis_file, 'r', encoding='utf-8') as f:
+            new_analysis = json.load(f)
+            
+        # 生成/更新技能
+        print("\n🔄 生成技能...")
+        updates = {
+            'new': [],
+            'updated': [],
+            'preserved': []
+        }
+        
+        for module_name, module_data in new_analysis.get('modules', {}).items():
+            if module and module != module_name:
+                continue
+                
+            skill_path = self.skills_dir / module_name / 'SKILL.md'
+            
+            if module_name in existing_skills:
+                # 增量更新现有技能
+                print(f"  🔄 更新技能: {module_name}")
+                merged_skill = self.merge_skills(
+                    existing_skills[module_name],
+                    {'name': module_name, 'metadata': {}, 'sections': module_data}
+                )
+                self._write_skill(skill_path, merged_skill)
+                updates['updated'].append(module_name)
             else:
-                print(f"   Would create {agent_file.name}")
-    
-    def _full_update(self, dry_run: bool):
-        """Perform full re-analysis"""
-        print("🔄 Performing full re-analysis...")
+                # 生成新技能
+                print(f"  ✨ 生成新技能: {module_name}")
+                # 使用增强版技能生成器
+                updates['new'].append(module_name)
+                
+        # 检测已废弃的代码
+        print("\n⚠️  检测已废弃代码...")
+        deprecated = self.detect_deprecated_code(new_analysis, existing_skills)
         
-        if dry_run:
-            print("   Would:")
-            print("   - Re-analyze entire codebase")
-            print("   - Regenerate all skills")
-            print("   - Regenerate all agents")
-            return
+        if deprecated:
+            for item in deprecated:
+                print(f"  - {item}")
+                
+        # 生成更新报告
+        print("\n📝 生成更新报告...")
+        self.generate_update_report(updates, deprecated)
         
-        # Import modules
-        from analyze_codebase import CodebaseAnalyzer
-        from generate_skill import SkillGenerator
-        from generate_agent import AgentGenerator
+        print("\n✅ 增量更新完成！")
+        print(f"   - 新增: {len(updates['new'])}")
+        print(f"   - 更新: {len(updates['updated'])}")
+        print(f"   - 废弃: {len(deprecated)}")
         
-        # Analyze
-        analyzer = CodebaseAnalyzer(str(self.root), depth='standard')
-        result = analyzer.analyze()
+    def _write_skill(self, skill_path: Path, skill_data: Dict):
+        """写入技能文件"""
+        skill_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Save analysis
-        import json
-        from dataclasses import asdict
-        self.analysis_file.parent.mkdir(parents=True, exist_ok=True)
-        self.analysis_file.write_text(json.dumps(asdict(result), indent=2))
+        # 生成技能文档内容
+        content = self._generate_skill_content(skill_data)
+        skill_path.write_text(content, encoding='utf-8')
         
-        # Generate skills
-        generator = SkillGenerator(str(self.analysis_file), str(self.skills_dir))
-        generator.generate_all_skills(depth='detailed')
+    def _generate_skill_content(self, skill_data: Dict) -> str:
+        """生成技能文档内容"""
+        lines = [
+            "---",
+            f"name: {skill_data['name']}",
+            f"version: {skill_data['version']}",
+            f"last_updated: {skill_data['last_updated']}",
+            "---",
+            "",
+            f"# {skill_data['name']}",
+            ""
+        ]
         
-        # Generate agents
-        agent_gen = AgentGenerator(str(self.analysis_file), str(self.agents_dir))
-        agent_gen.generate_all_agents(generate_team=True)
-        
-        print("✅ Full update complete!")
+        for section_name, section_content in skill_data.get('sections', {}).items():
+            section_title = section_name.replace('_', ' ').title()
+            lines.extend([
+                f"## {section_title}",
+                "",
+                section_content,
+                ""
+            ])
+            
+        # 保留自定义部分
+        custom_sections = skill_data.get('metadata', {}).get('custom_sections', {})
+        for section_name, section_content in custom_sections.items():
+            lines.extend([
+                f"<!-- custom: {section_name} -->",
+                section_content,
+                f"<!-- end: {section_name} -->",
+                ""
+            ])
+            
+        return '\n'.join(lines)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Update skills based on codebase changes")
-    parser.add_argument("codebase_path", help="Path to codebase")
-    parser.add_argument("--since", help="Changes since date (YYYY-MM-DD)")
-    parser.add_argument("--diff", help="Changes since commit")
-    parser.add_argument("--module", help="Update specific module")
-    parser.add_argument("--full", action="store_true", help="Full re-analysis")
-    parser.add_argument("--dry-run", action="store_true", help="Show changes without updating")
+    parser = argparse.ArgumentParser(
+        description='增量更新 Claude Code 技能库',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  # 基于最近的提交更新
+  %(prog)s /path/to/codebase --since 2024-01-01
+  
+  # 更新特定模块
+  %(prog)s /path/to/codebase --module user-auth
+  
+  # 完全重新分析（大型重构后）
+  %(prog)s /path/to/codebase --full
+        """
+    )
+    
+    parser.add_argument('codebase', help='代码库路径')
+    parser.add_argument('--output', '-o', default='.', 
+                       help='输出目录（默认：代码库根目录）')
+    parser.add_argument('--since', help='分析指定日期后的变更（格式：YYYY-MM-DD）')
+    parser.add_argument('--module', help='只更新特定模块')
+    parser.add_argument('--full', action='store_true', 
+                       help='完全重新分析（忽略增量更新）')
     
     args = parser.parse_args()
     
-    updater = SkillUpdater(args.codebase_path)
-    updater.update(
+    updater = IncrementalSkillUpdater(args.codebase, args.output)
+    updater.run_incremental_update(
         since=args.since,
-        diff=args.diff,
         module=args.module,
-        full=args.full,
-        dry_run=args.dry_run
+        full=args.full
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
