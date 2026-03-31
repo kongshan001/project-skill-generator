@@ -184,7 +184,7 @@ PYTHON_EOF
         echo "export const util = { getValue: () => 'test' };" > test_js_project/utils/helpers.js
         
         cd test_js_project
-        python3 "/root/.openclaw/workspace-opengl/skills/project-skill-generator/scripts/analyze_codebase.py" . --no-progress --language javascript > /tmp/test_output.json
+        python3 "/root/.openclaw/workspace-opengl/skills/project-skill-generator/scripts/analyze_codebase.py" . --no-progress --language javascript --output /tmp/test_output.json
         
         js_modules_found=$(grep -c '"name"' /tmp/test_output.json || echo "0")
         if [ "${js_modules_found%%[[:space:]]*}" -gt 0 ]; then
