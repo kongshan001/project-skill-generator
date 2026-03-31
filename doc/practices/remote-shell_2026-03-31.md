@@ -1,9 +1,9 @@
 # remote-shell 验证报告
 
 **验证日期**: 2026-03-31
-**验证时间**: 01:19:40
+**验证时间**: 09:20:03
 **项目仓库**: https://github.com/kongshan001/remote-shell
-**分析深度**: quick
+**分析深度**: standard
 
 ---
 
@@ -22,7 +22,7 @@
    No configuration file found, using defaults
 🔍 Analyzing codebase: /root/.openclaw/workspace-opengl/repos/remote-shell
    Language: python
-   Depth: quick
+   Depth: standard
 
 📁 Discovering modules...
    Found 4 modules
@@ -115,4 +115,4 @@ cd /root/.openclaw/workspace-opengl/repos/remote-shell
 
 ---
 
-*报告生成时间: 2026-03-31 01:19:41*
+*报告生成时间: 2026-03-31 09:20:04*
