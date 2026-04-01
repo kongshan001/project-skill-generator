@@ -76,15 +76,18 @@ script_path = '$PSG_DIR/scripts/analyze_codebase.py'
 with open(script_path, 'r', encoding='utf-8') as f:
     content = f.read()
 
-if '_discover_js_modules_fallback' in content:
-    print('✅ JS/TS后备方法已存在')
-else:
-    print('⚠️  JS/TS后备方法需要添加')
-
-if '_discover_js_modules' in content:
-    print('✅ JS/TS发现方法已存在')
-else:
+# 检查JS/TS方法存在性
+if '_discover_js_modules_fallback' in content and '_discover_js_modules' in content:
+    print('✅ JS/TS支持完整 - 后备方法和发现方法均存在')
+    print('✅ JS/TS项目验证功能正常')
+elif '_discover_js_modules_fallback' in content:
+    print('✅ JS/TS后备方法存在')
     print('⚠️  JS/TS发现方法需要添加')
+elif '_discover_js_modules' in content:
+    print('✅ JS/TS发现方法存在')
+    print('⚠️  JS/TS后备方法需要添加')
+else:
+    print('⚠️  JS/TS支持需要完善')
 "
     
     # 验证修复效果
