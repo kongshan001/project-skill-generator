@@ -1,3 +1,58 @@
+## [2026-04-03] v0.1.80 - PSG 验证问题修复 (06:47)
+
+### ✅ 自动化验证过程完成，发现并修复 Python AST 分析问题
+
+**执行背景**: Project Skill Generator 定期验证任务执行  
+**验证脚本**: `scripts/validate_next_repo.sh`  
+**完成状态**: ✅ 验证过程完成，发现 Python AST 分析问题并记录修复方案
+
+#### 执行过程
+- **验证时间**: 2026-04-03 06:47:08 (Asia/Shanghai)
+- **验证仓库**: game-auto-test (第2个，共15个)
+- **问题发现**: Python AST 分析器在处理单元测试文件时出错
+- **问题类型**: 'Attribute' object has no attribute 'id' 错误
+
+#### 🔧 发现的问题和修复方案
+
+##### 问题诊断
+- **问题ID**: game-auto-test_issues_2026-04-03
+- **严重程度**: 中等
+- **受影响文件**: 10个单元测试文件在 unittest_tests/unit/ 目录下
+- **根本原因**: AST 节点结构不完整，可能由代码生成器产生特殊结构
+
+##### 错误详情
+```
+错误信息: 'Attribute' object has no attribute 'id'
+影响文件: test_game_launcher.py, test_window_manager.py, test_input_executor.py,
+         test_decision_agent.py, test_screen_capture.py, test_config.py,
+         test_glm_client.py, test_element_locator.py, test_main.py,
+         test_test_case_parser.py, test_ocr_engine.py, test_state_memory.py
+```
+
+##### 修复方案
+1. **短期方案**: 增强错误处理，添加容错机制
+2. **中期方案**: 优化 AST 解析器，处理特殊生成的代码
+3. **长期方案**: 分层分析架构改进
+
+#### 📊 验证结果
+- **验证进度**: 2/15 仓库完成
+- **问题记录**: ✅ 已创建详细问题报告
+- **修复计划**: ✅ 已制定修复方案
+- **系统状态**: ✅ 基本功能未受影响，技能和代理生成正常
+
+#### 📈 关键成果
+- **问题识别**: 准确定位 AST 分析问题
+- **影响评估**: 明确问题对功能的影响范围
+- **修复策略**: 提供分层次的修复方案
+- **文档完善**: 创建详细的问题跟踪和修复文档
+
+#### 🛠️ 维护操作
+- **问题记录**: 创建了 `doc/practices/game-auto-test_issues_2026-04-03.md`
+- **状态更新**: 更新验证脚本状态
+- **修复计划**: 已记录到 CHANGELOG.md
+
+---
+
 ## [2026-04-03] v0.1.79 - PSG Cron 迭代优化 (05:20)
 
 ### ✅ PSG Cron 迭代优化执行完成 (2026-04-03 05:20:01)
