@@ -572,13 +572,26 @@ class CodebaseAnalyzer:
             for node in ast.iter_child_nodes(tree):
                 if isinstance(node, ast.ClassDef):
                     # Enhanced class analysis
+                    # Safely extract inheritance information
+                    inheritance = []
+                    if node.bases:
+                        for base in node.bases:
+                            if hasattr(base, 'id'):
+                                inheritance.append(base.id)
+                            elif hasattr(base, 'value'):
+                                # Handle cases where base is a Name or Constant
+                                inheritance.append(str(base.value))
+                            else:
+                                # Fallback for complex AST nodes
+                                inheritance.append(str(base))
+                    
                     class_info = {
                         'name': node.name,
                         'methods': [],
                         'properties': [],
                         'complexity': 0,
                         'docstring': ast.get_docstring(node),
-                        'inheritance': [base.id for base in node.bases] if node.bases else []
+                        'inheritance': inheritance
                     }
                     
                     # Calculate complexity for class (method counts)
@@ -664,19 +677,32 @@ class CodebaseAnalyzer:
         }
     
     def _get_type_annotation(self, annotation_node):
-        """Extract type annotation from AST node"""
-        if isinstance(annotation_node, ast.Name):
-            return annotation_node.id
-        elif isinstance(annotation_node, ast.Attribute):
-            return f"{annotation_node.value.id}.{annotation_node.attr}"
-        elif isinstance(annotation_node, ast.Subscript):
-            value = self._get_type_annotation(annotation_node.value)
-            slice_str = self._get_type_annotation(annotation_node.slice)
-            return f"{value}[{slice_str}]"
-        elif isinstance(annotation_node, ast.Constant):
-            return str(annotation_node.value)
-        else:
-            return str(annotation_node)
+        """Extract type annotation from AST node with robust error handling"""
+        try:
+            if isinstance(annotation_node, ast.Name):
+                return annotation_node.id
+            elif isinstance(annotation_node, ast.Attribute):
+                # Handle the case where value might not have an 'id' attribute
+                if hasattr(annotation_node.value, 'id'):
+                    return f"{annotation_node.value.id}.{annotation_node.attr}"
+                elif hasattr(annotation_node.value, 'value'):
+                    # Handle the case where value is a Name or Constant
+                    return f"{annotation_node.value.value}.{annotation_node.attr}"
+                else:
+                    # Fallback: just return the attribute name
+                    return annotation_node.attr
+            elif isinstance(annotation_node, ast.Subscript):
+                value = self._get_type_annotation(annotation_node.value)
+                slice_str = self._get_type_annotation(annotation_node.slice)
+                return f"{value}[{slice_str}]"
+            elif isinstance(annotation_node, ast.Constant):
+                return str(annotation_node.value)
+            else:
+                return str(annotation_node)
+        except Exception as e:
+            # In case of any parsing errors, return a safe fallback
+            print(f"   ⚠️  Error parsing type annotation: {e}")
+            return "Any"
     
     def _calculate_complexity(self, func_node):
         """Calculate cyclomatic complexity"""
