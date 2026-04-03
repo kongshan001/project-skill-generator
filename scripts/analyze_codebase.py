@@ -558,72 +558,83 @@ class CodebaseAnalyzer:
             except SyntaxError as e:
                 print(f"   ⚠️  Syntax error in {file_path}: {e}")
                 return
+            except Exception as e:
+                print(f"   ⚠️  Unexpected parsing error in {file_path}: {e}")
+                return
             
-            # Extract imports
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        module.imports.add(alias.name)
-                elif isinstance(node, ast.ImportFrom):
-                    if node.module:
-                        module.imports.add(node.module)
+            # Extract imports with error handling
+            try:
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            if hasattr(alias, 'name'):
+                                module.imports.add(alias.name)
+                    elif isinstance(node, ast.ImportFrom):
+                        if hasattr(node, 'module') and node.module:
+                            module.imports.add(node.module)
+            except Exception as e:
+                print(f"   ⚠️  Error processing imports in {file_path}: {e}")
             
-            # Enhanced analysis for classes and functions
-            for node in ast.iter_child_nodes(tree):
-                if isinstance(node, ast.ClassDef):
-                    # Enhanced class analysis
-                    # Safely extract inheritance information
-                    inheritance = []
-                    if node.bases:
-                        for base in node.bases:
-                            if hasattr(base, 'id'):
-                                inheritance.append(base.id)
-                            elif hasattr(base, 'value'):
-                                # Handle cases where base is a Name or Constant
-                                inheritance.append(str(base.value))
-                            else:
-                                # Fallback for complex AST nodes
-                                inheritance.append(str(base))
-                    
-                    class_info = {
-                        'name': node.name,
-                        'methods': [],
-                        'properties': [],
-                        'complexity': 0,
-                        'docstring': ast.get_docstring(node),
-                        'inheritance': inheritance
-                    }
-                    
-                    # Calculate complexity for class (method counts)
-                    for item in node.body:
-                        if isinstance(item, ast.FunctionDef):
-                            method_info = self._analyze_function_def(item)
-                            class_info['methods'].append(method_info)
-                            class_info['complexity'] += method_info['complexity']
-                    
-                    # Add enhanced class info
-                    if hasattr(module, 'classes_info'):
-                        module.classes_info.append(class_info)
-                    else:
-                        module.classes_info = [class_info]
-                    
-                    module.classes.append(node.name)
-                    
-                elif isinstance(node, ast.FunctionDef):
-                    # Enhanced function analysis
-                    func_info = self._analyze_function_def(node)
-                    if hasattr(module, 'functions_info'):
-                        module.functions_info.append(func_info)
-                    else:
-                        module.functions_info = [func_info]
-                    
-                    module.functions.append(node.name)
+            # Enhanced analysis for classes and functions with error handling
+            try:
+                for node in ast.iter_child_nodes(tree):
+                    if isinstance(node, ast.ClassDef):
+                        # Enhanced class analysis
+                        # Safely extract inheritance information
+                        inheritance = []
+                        if node.bases:
+                            for base in node.bases:
+                                if hasattr(base, 'id'):
+                                    inheritance.append(base.id)
+                                elif hasattr(base, 'value'):
+                                    # Handle cases where base is a Name or Constant
+                                    inheritance.append(str(base.value))
+                                else:
+                                    # Fallback for complex AST nodes
+                                    inheritance.append(str(base))
+                        
+                        class_info = {
+                            'name': node.name,
+                            'methods': [],
+                            'properties': [],
+                            'complexity': 0,
+                            'docstring': ast.get_docstring(node),
+                            'inheritance': inheritance
+                        }
+                        
+                        # Calculate complexity for class (method counts)
+                        for item in node.body:
+                            if isinstance(item, ast.FunctionDef):
+                                method_info = self._analyze_function_def(item)
+                                class_info['methods'].append(method_info)
+                                class_info['complexity'] += method_info['complexity']
+                        
+                        # Add enhanced class info
+                        if hasattr(module, 'classes_info'):
+                            module.classes_info.append(class_info)
+                        else:
+                            module.classes_info = [class_info]
+                        
+                        module.classes.append(node.name)
+                    elif isinstance(node, ast.FunctionDef):
+                        # Enhanced function analysis
+                        func_info = self._analyze_function_def(node)
+                        if hasattr(module, 'functions_info'):
+                            module.functions_info.append(func_info)
+                        else:
+                            module.functions_info = [func_info]
+                        
+                        module.functions.append(node.name)
+            except Exception as e:
+                print(f"   ⚠️  Error analyzing classes and functions in {file_path}: {e}")
             
             # Extract patterns
-            self._extract_python_patterns(content, module, file_path)
-            
+            try:
+                self._extract_python_patterns(content, module, file_path)
+            except Exception as e:
+                print(f"   ⚠️  Error extracting patterns in {file_path}: {e}")
         except Exception as e:
-            print(f"   ⚠️  Error analyzing {file_path}: {e}")
+            print(f"   ⚠️  Error analyzing Python file {file_path}: {e}")
     
     def _analyze_function_def(self, func_node):
         """Analyze a function definition in detail"""
@@ -663,24 +674,40 @@ class CodebaseAnalyzer:
         if func_node.returns:
             return_type = self._get_type_annotation(func_node.returns)
         
-        # Extract function info
+        # Extract function info with error handling
+        try:
+            is_generator = any(isinstance(node, ast.Yield) for node in ast.walk(func_node))
+            call_count = self._count_function_calls(func_node)
+            docstring = ast.get_docstring(func_node)
+            line_count = func_node.end_lineno - func_node.lineno + 1 if hasattr(func_node, 'end_lineno') else 0
+        except Exception as e:
+            print(f"   ⚠️  Error analyzing function {func_node.name}: {e}")
+            is_generator = False
+            call_count = 0
+            docstring = None
+            line_count = 0
+        
         return {
-            'name': func_node.name,
+            'name': func_node.name if hasattr(func_node, 'name') else 'anonymous',
             'parameters': params,
             'return_type': return_type,
             'is_async': isinstance(func_node, ast.AsyncFunctionDef),
-            'is_generator': any(isinstance(node, ast.Yield) for node in ast.walk(func_node)),
+            'is_generator': is_generator,
             'complexity': complexity,
-            'docstring': ast.get_docstring(func_node),
-            'line_count': func_node.end_lineno - func_node.lineno + 1 if hasattr(func_node, 'end_lineno') else 0,
-            'call_count': self._count_function_calls(func_node)
+            'docstring': docstring,
+            'line_count': line_count,
+            'call_count': call_count
         }
     
     def _get_type_annotation(self, annotation_node):
         """Extract type annotation from AST node with robust error handling"""
         try:
             if isinstance(annotation_node, ast.Name):
-                return annotation_node.id
+                # Safely get the id attribute with fallback
+                if hasattr(annotation_node, 'id'):
+                    return annotation_node.id
+                else:
+                    return 'Any'  # Fallback for malformed AST Name nodes
             elif isinstance(annotation_node, ast.Attribute):
                 # Handle the case where value might not have an 'id' attribute
                 if hasattr(annotation_node.value, 'id'):
@@ -705,30 +732,36 @@ class CodebaseAnalyzer:
             return "Any"
     
     def _calculate_complexity(self, func_node):
-        """Calculate cyclomatic complexity"""
-        complexity = 1  # Base complexity
-        
-        for node in ast.walk(func_node):
-            if isinstance(node, (ast.If, ast.While, ast.For, ast.AsyncFor)):
-                complexity += 1
-            elif isinstance(node, ast.ExceptHandler):
-                complexity += 1
-            elif isinstance(node, ast.With):
-                complexity += 1
-            elif isinstance(node, ast.comprehension):
-                complexity += 1
-        
-        return complexity
+        """Calculate cyclomatic complexity with error handling"""
+        try:
+            complexity = 1  # Base complexity
+            
+            for node in ast.walk(func_node):
+                if isinstance(node, (ast.If, ast.While, ast.For, ast.AsyncFor)):
+                    complexity += 1
+                elif isinstance(node, ast.ExceptHandler):
+                    complexity += 1
+                elif isinstance(node, ast.With):
+                    complexity += 1
+                elif isinstance(node, ast.comprehension):
+                    complexity += 1
+            
+            return complexity
+        except Exception as e:
+            print(f"   ⚠️  Error calculating complexity: {e}")
+            return 1
     
     def _count_function_calls(self, func_node):
-        """Count function calls within this function"""
-        call_count = 0
-        
-        for node in ast.walk(func_node):
-            if isinstance(node, ast.Call):
-                call_count += 1
-        
-        return call_count
+        """Count function calls within this function with error handling"""
+        try:
+            call_count = 0
+            for node in ast.walk(func_node):
+                if isinstance(node, ast.Call):
+                    call_count += 1
+            return call_count
+        except Exception as e:
+            print(f"   ⚠️  Error counting function calls: {e}")
+            return 0
     
     def _analyze_js_file(self, file_path: str, module: ModuleInfo):
         """Analyze a JavaScript/TypeScript file"""
