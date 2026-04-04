@@ -6,7 +6,7 @@
 
 根据复杂度和代表性，建议按以下顺序验证：
 
-### 第一批：Python 项目（优先验证）
+### 第一批：Python 项目（已完成验证）
 
 | # | 仓库名 | 语言 | 描述 | 状态 | 验证日期 |
 |---|--------|------|------|------|----------|
@@ -18,7 +18,7 @@
 | 6 | game-frame-sync | Python | 游戏帧同步技术 | ✅ 已完成 | 2026-03-29 |
 | 7 | opencode-demo | Python | OpenCode插件demo | ✅ 已完成 | 2026-03-29 |
 
-### 第二批：TypeScript/JavaScript 项目
+### 第二批：TypeScript/JavaScript 项目（已完成验证）
 
 | # | 仓库名 | 语言 | 描述 | 状态 | 验证日期 |
 |---|--------|------|------|------|----------|
@@ -26,7 +26,7 @@
 | 9 | feishu_chatbot | TypeScript | 飞书聊天机器人 | ✅ 已完成 | 2026-03-29 |
 | 10 | opencode-plugins | JavaScript | OpenCode插件集合 | ✅ 已完成 | 2026-03-29 |
 
-### 第三批：其他项目
+### 第三批：其他项目（已完成验证）
 
 | # | 仓库名 | 语言 | 描述 | 状态 | 验证日期 |
 |---|--------|------|------|------|----------|
@@ -35,6 +35,29 @@
 | 13 | cc_plugin | Shell | 插件实践指南 | ✅ 已完成 | 2026-03-29 |
 | 14 | research-reports | Shell | 调研报告管理 | ✅ 已完成 | 2026-03-29 |
 | 15 | brainstorm | - | 头脑风暴记录 | ✅ 已完成 | 2026-03-29 |
+
+### 第四批：新增仓库（待验证）
+
+| # | 仓库名 | 语言 | 描述 | 状态 | 验证日期 |
+|---|--------|------|------|------|----------|
+| 16 | ai-coding-tools-research | HTML | AI 编程工具对比分析研究 | ✅ 已完成 | - |
+| 17 | ai_work_space | Shell | AI 工作空间配置 | ✅ 已完成 | - |
+| 18 | algorithms_test | C++ | 算法测试项目 | ✅ 已完成 | - |
+| 19 | behavior | Python | 行为分析相关 | ✅ 已完成 | - |
+| 20 | cc_skills_marketplace | Shell | Skills Marketplace | ✅ 已完成 | - |
+| 21 | cmake_learn | null | CMake 学习项目 | ✅ 已完成 | - |
+| 22 | cocos2d-x | C++ | Cocos2d-x 游戏引擎 | ⏳ 待验证 | - |
+| 23 | cocos-engine-claude-skills | null | Cocos Creator Claude Skills | ⏳ 待验证 | - |
+| 24 | code-optimizer-skill | Python | 代码优化技能 | ⏳ 待验证 | - |
+| 25 | cpython | Python | CPython 源码学习 | ⏳ 待验证 | - |
+| 26 | dykongshan-research | HTML | 调研文档中心 | ⏳ 待验证 | - |
+| 27 | dykongshan | Vue | Vue.js 项目 | ⏳ 待验证 | - |
+| 28 | game_auto_test_fw | Python | 游戏自动化测试框架 | ⏳ 待验证 | - |
+| 29 | gameautotest | Python | 游戏自动化测试 | ⏳ 待验证 | - |
+| 30 | games101_hw | C++ | Games101 作业 | ⏳ 待验证 | - |
+| 31 | github-project-analyzer | Shell | GitHub 项目分析工具 | ⏳ 待验证 | - |
+| 32 | googletest_demo | CMake | Google Test 示例 | ⏳ 待验证 | - |
+| 33 | hello-world-page | HTML | Hello World 页面 | ⏳ 待验证 | - |
 
 ## 验证指标
 
@@ -49,11 +72,11 @@
 
 ## 统计信息
 
-- 总仓库数: 15（排除 project-skill-generator 自身和 hhhhhh）
+- 总仓库数: 33（排除 project-skill-generator 自身和 hhhhhh）
 - 已验证: 15 ✅
 - 进行中: 0
-- 待验证: 0
-- 成功率: 100%
+- 待验证: 18
+- 成功率: 100%（第一批）
 - 最大项目: wangzhe-chess (38个模块, 85,844行代码)
 - 平均技能生成: 16.4 个/项目
 - 平均代理生成: 2.8 个/项目

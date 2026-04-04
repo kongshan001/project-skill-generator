@@ -35,6 +35,7 @@ log_warn() {
 
 # 待验证仓库列表（按优先级排序）
 REPOS=(
+    # 第一批：已验证的仓库
     "remote-shell"
     "game-auto-test"
     "wangzhe-chess"
@@ -50,6 +51,26 @@ REPOS=(
     "cc_plugin"
     "research-reports"
     "brainstorm"
+    
+    # 第二批：新发现的仓库
+    "ai-coding-tools-research"
+    "ai_work_space"
+    "algorithms_test"
+    "behavior"
+    "cc_skills_marketplace"
+    "cmake_learn"
+    "cocos2d-x"
+    "cocos-engine-claude-skills"
+    "code-optimizer-skill"
+    "cpython"
+    "dykongshan-research"
+    "dykongshan"
+    "game_auto_test_fw"
+    "gameautotest"
+    "games101_hw"
+    "github-project-analyzer"
+    "googletest_demo"
+    "hello-world-page"
 )
 
 # 获取当前应该验证的仓库索引
