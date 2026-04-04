@@ -55,8 +55,8 @@
 | 28 | game_auto_test_fw | Python | 游戏自动化测试框架 | ✅ 已完成 | - |
 | 29 | gameautotest | Python | 游戏自动化测试 | ✅ 已完成 | - |
 | 30 | games101_hw | C++ | Games101 作业 | ✅ 已完成 | - |
-| 31 | github-project-analyzer | Shell | GitHub 项目分析工具 | ⏳ 待验证 | - |
-| 32 | googletest_demo | CMake | Google Test 示例 | ⏳ 待验证 | - |
+| 31 | github-project-analyzer | Shell | GitHub 项目分析工具 | ✅ 已完成 | - |
+| 32 | googletest_demo | CMake | Google Test 示例 | ✅ 已完成 | - |
 | 33 | hello-world-page | HTML | Hello World 页面 | ⏳ 待验证 | - |
 
 ## 验证指标
