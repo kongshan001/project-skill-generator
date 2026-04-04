@@ -562,17 +562,70 @@ class CodebaseAnalyzer:
     
     def _discover_generic_modules(self):
         """Discover modules for other languages"""
-        # Group by top-level directories
+        # Check if this is a configuration-only project
+        config_files = ['package.json', 'vite.config.js', 'webpack.config.js', 'postcss.config.js', 
+                       'tailwind.config.js', 'jest.config.js', 'vitest.config.js', 'tsconfig.json',
+                       'pyproject.toml', 'setup.py', 'requirements.txt', 'dockerfile', 'docker-compose.yml']
+        
+        config_file_count = 0
+        source_file_count = 0
+        
+        # Count configuration vs source files
+        for item in self.root.iterdir():
+            if item.is_file():
+                filename = item.name.lower()
+                if filename in config_files:
+                    config_file_count += 1
+                elif '.' in filename:
+                    ext = filename.split('.')[-1]
+                    if ext in ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'h', 'go', 'rs', 'rb']:
+                        source_file_count += 1
+        
+        # For configuration-only projects, group all config files in root
+        if config_file_count >= 2 and source_file_count == 0:
+            files = []
+            for item in self.root.iterdir():
+                if item.is_file():
+                    filename = item.name.lower()
+                    if filename in config_files or '.' in item.name:
+                        files.append(str(item))
+            
+            self.modules['.'] = ModuleInfo(
+                name='.',
+                path=str(self.root),
+                language=self.language,
+                files=files
+            )
+            return
+        
+        # For normal projects, group by top-level directories
         for item in self.root.iterdir():
             if item.is_dir() and not item.name.startswith('.'):
                 files = list(item.rglob("*"))
                 files = [str(f) for f in files if f.is_file()]
                 
-                self.modules[item.name] = ModuleInfo(
-                    name=item.name,
-                    path=str(item),
+                # Skip empty directories
+                if files:
+                    self.modules[item.name] = ModuleInfo(
+                        name=item.name,
+                        path=str(item),
+                        language=self.language,
+                        files=files
+                    )
+        
+        # If no directories found, put all files in root module
+        if not self.modules:
+            all_files = []
+            for item in self.root.iterdir():
+                if item.is_file():
+                    all_files.append(str(item))
+            
+            if all_files:
+                self.modules['.'] = ModuleInfo(
+                    name='.',
+                    path=str(self.root),
                     language=self.language,
-                    files=files
+                    files=all_files
                 )
     
     def _analyze_module(self, module: ModuleInfo):
@@ -1227,6 +1280,30 @@ class CodebaseAnalyzer:
         """Detect architectural pattern"""
         module_names = [m.lower() for m in self.modules.keys()]
         
+        # Check if this is a configuration-only project
+        config_files = ['package.json', 'vite.config.js', 'webpack.config.js', 'postcss.config.js', 
+                       'tailwind.config.js', 'jest.config.js', 'vitest.config.js', 'tsconfig.json',
+                       'pyproject.toml', 'setup.py', 'requirements.txt', 'dockerfile', 'docker-compose.yml']
+        
+        # Count configuration files vs source code files
+        config_file_count = 0
+        source_file_count = 0
+        
+        for module in self.modules.values():
+            for file_path in module.files:
+                filename = file_path.split('/')[-1].lower()
+                if filename in config_files:
+                    config_file_count += 1
+                else:
+                    # Check if it's a source file (has typical source code extensions)
+                    ext = filename.split('.')[-1] if '.' in filename else ''
+                    if ext in ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'h', 'go', 'rs', 'rb']:
+                        source_file_count += 1
+        
+        # If mostly configuration files, classify as configuration-based
+        if config_file_count > source_file_count and config_file_count >= 2:
+            return "Configuration-based"
+        
         # MVC/MVT patterns
         if any('model' in m for m in module_names) and any('view' in m for m in module_names):
             return "MVC"
@@ -1243,9 +1320,13 @@ class CodebaseAnalyzer:
         if any('api' in m or 'route' in m for m in module_names) and any('db' in m or 'data' in m for m in module_names):
             return "Layered"
         
-        # Monolithic
-        if len(self.modules) <= 3:
+        # Monolithic (only if we have actual source code)
+        if len(self.modules) <= 3 and source_file_count > 0:
             return "Monolithic"
+        
+        # Small project with minimal code
+        if len(self.modules) <= 3 and source_file_count == 0:
+            return "Minimal"
         
         return "Unknown"
     

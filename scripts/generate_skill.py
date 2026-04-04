@@ -62,6 +62,10 @@ class SkillGenerator:
     
     def _normalize_skill_name(self, module_name: str) -> str:
         """Convert module name to skill name"""
+        # Handle empty or dot-only module names
+        if not module_name or module_name.strip() == '.':
+            return 'main-module'
+        
         # Replace dots and slashes with hyphens
         name = module_name.replace('.', '-').replace('/', '-')
         # Remove consecutive hyphens
@@ -69,7 +73,7 @@ class SkillGenerator:
             name = name.replace('--', '-')
         # Remove leading/trailing hyphens
         name = name.strip('-')
-        return name.lower()
+        return name.lower() if name else 'unnamed-module'
     
     def _generate_skill_markdown(self, module: Dict[str, Any], depth: str) -> str:
         """Generate SKILL.md content"""
@@ -124,21 +128,51 @@ description: {description}
         """Build skill description"""
         module_name = module['name']
         patterns = module.get('patterns', [])
-        has_classes = len(module.get('classes', [])) > 0
-        has_functions = len(module.get('functions', [])) > 0
+        classes = module.get('classes', [])
+        functions = module.get('functions', [])
+        files = module.get('files', [])
+        language = module.get('language', 'unknown')
+        
+        # Handle empty module name
+        if not module_name or module_name.strip() == '.':
+            module_name = 'main'
         
         desc_parts = [f"Expert skills for {module_name} module."]
         
+        # Add language information
+        desc_parts.append(f"Language: {language}.")
+        
+        # Add file count
+        desc_parts.append(f"Manages {len(files)} source files.")
+        
+        # Add patterns if available
         if patterns:
-            desc_parts.append(f"Patterns: {', '.join(patterns[:3])}.")
+            unique_patterns = list(set(patterns))[:3]  # Top 3 unique patterns
+            desc_parts.append(f"Key patterns: {', '.join(unique_patterns)}.")
+        else:
+            desc_parts.append("Focuses on code structure and best practices.")
         
-        if has_classes:
-            desc_parts.append(f"Contains {len(module['classes'])} key classes.")
+        # Add classes if available
+        if classes:
+            desc_parts.append(f"Contains {len(classes)} core classes including {classes[0] if classes else 'key components'}.")
         
-        if has_functions:
-            desc_parts.append(f"Provides {len(module['functions'])} functions.")
+        # Add functions if available
+        if functions:
+            desc_parts.append(f"Provides {len(functions)} utility functions.")
         
-        desc_parts.append(f"Use when working with {module_name} related code.")
+        # Add file type information based on language
+        file_extensions = set()
+        for file in files:
+            if '.' in file:
+                ext = file.split('.')[-1].lower()
+                if ext in ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'h', 'go', 'rs', 'rb']:
+                    file_extensions.add(ext)
+        
+        if file_extensions:
+            desc_parts.append(f"Supports: {', '.join(sorted(file_extensions))} files.")
+        
+        # Usage guidance
+        desc_parts.append(f"Essential for {module_name} development, testing, and maintenance.")
         
         return " ".join(desc_parts)
     
@@ -227,6 +261,7 @@ This skill provides expertise for the **{module['name']}** module.
     def _generate_code_examples(self, module: Dict[str, Any]) -> str:
         """Generate code examples section"""
         lang = module['language']
+        files = module.get('files', [])
         
         examples = [f"""## Code Examples
 
@@ -236,13 +271,67 @@ This skill provides expertise for the **{module['name']}** module.
 # Import from {module['name']}
 """]
         
-        # Add import examples
+        # Add import examples based on available data
         if lang == "python":
-            examples.append(f"from {module['name']} import {', '.join(module.get('classes', [])[:2] or module.get('functions', [])[:2])}")
+            exports = module.get('classes', [])[:2] or module.get('functions', [])[:2]
+            if exports:
+                examples.append(f"from {module['name']} import {', '.join(exports)}")
         elif lang in ["javascript", "typescript"]:
-            examples.append(f"import {{ {', '.join(module.get('exports', [])[:2])} }} from '{module['name']}';")
+            exports = module.get('exports', [])[:2]
+            if exports:
+                examples.append(f"import {{ {', '.join(exports)} }} from '{module['name']}';")
         
         examples.append("```")
+        
+        # Extract actual code snippets from the module files
+        if files:
+            examples.append(f"""
+### Code Snippets
+
+""")
+            
+            # Try to read and extract meaningful code from files
+            for file_path in files[:3]:  # Top 3 files
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        lines = f.readlines()
+                        
+                        # Skip if file is empty or too large
+                        if not lines or len(lines) > 200:
+                            continue
+                        
+                        # Extract meaningful code sections
+                        code_lines = []
+                        comment_block = False
+                        for line in lines:
+                            stripped = line.strip()
+                            
+                            # Skip empty lines and comments
+                            if not stripped or stripped.startswith('//') or stripped.startswith('#'):
+                                continue
+                            
+                            # Skip import statements (already covered in basic usage)
+                            if stripped.startswith('import ') or stripped.startswith('from '):
+                                continue
+                            
+                            # Add code line
+                            code_lines.append(f"    {line.rstrip()}")
+                            
+                            # Limit code example length
+                            if len(code_lines) >= 15:
+                                break
+                        
+                        if code_lines:
+                            filename = file_path.split('/')[-1]
+                            examples.append(f"#### {filename}")
+                            examples.append("```" + lang)
+                            examples.extend(code_lines[:15])
+                            examples.append("```")
+                            examples.append("")
+                            
+                except Exception:
+                    # If we can't read the file, skip it
+                    continue
         
         return chr(10).join(examples)
     
