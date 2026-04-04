@@ -48,9 +48,9 @@
 | 21 | cmake_learn | null | CMake 学习项目 | ✅ 已完成 | - |
 | 22 | cocos2d-x | C++ | Cocos2d-x 游戏引擎 | ⏳ 待验证 | - |
 | 23 | cocos-engine-claude-skills | null | Cocos Creator Claude Skills | ⏳ 待验证 | - |
-| 24 | code-optimizer-skill | Python | 代码优化技能 | ⏳ 待验证 | - |
+| 24 | code-optimizer-skill | Python | 代码优化技能 | ✅ 已完成 | - |
 | 25 | cpython | Python | CPython 源码学习 | ⏳ 待验证 | - |
-| 26 | dykongshan-research | HTML | 调研文档中心 | ⏳ 待验证 | - |
+| 26 | dykongshan-research | HTML | 调研文档中心 | ✅ 已完成 | - |
 | 27 | dykongshan | Vue | Vue.js 项目 | ⏳ 待验证 | - |
 | 28 | game_auto_test_fw | Python | 游戏自动化测试框架 | ⏳ 待验证 | - |
 | 29 | gameautotest | Python | 游戏自动化测试 | ⏳ 待验证 | - |
