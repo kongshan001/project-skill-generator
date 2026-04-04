@@ -51,7 +51,7 @@
 | 24 | code-optimizer-skill | Python | 代码优化技能 | ✅ 已完成 | - |
 | 25 | cpython | Python | CPython 源码学习 | ⏳ 待验证 | - |
 | 26 | dykongshan-research | HTML | 调研文档中心 | ✅ 已完成 | - |
-| 27 | dykongshan | Vue | Vue.js 项目 | ⏳ 待验证 | - |
+| 27 | dykongshan | Vue | Vue.js 项目 | ✅ 已完成 | - |
 | 28 | game_auto_test_fw | Python | 游戏自动化测试框架 | ⏳ 待验证 | - |
 | 29 | gameautotest | Python | 游戏自动化测试 | ⏳ 待验证 | - |
 | 30 | games101_hw | C++ | Games101 作业 | ⏳ 待验证 | - |
