@@ -52,9 +52,9 @@
 | 25 | cpython | Python | CPython 源码学习 | ⏳ 待验证 | - |
 | 26 | dykongshan-research | HTML | 调研文档中心 | ✅ 已完成 | - |
 | 27 | dykongshan | Vue | Vue.js 项目 | ✅ 已完成 | - |
-| 28 | game_auto_test_fw | Python | 游戏自动化测试框架 | ⏳ 待验证 | - |
-| 29 | gameautotest | Python | 游戏自动化测试 | ⏳ 待验证 | - |
-| 30 | games101_hw | C++ | Games101 作业 | ⏳ 待验证 | - |
+| 28 | game_auto_test_fw | Python | 游戏自动化测试框架 | ✅ 已完成 | - |
+| 29 | gameautotest | Python | 游戏自动化测试 | ✅ 已完成 | - |
+| 30 | games101_hw | C++ | Games101 作业 | ✅ 已完成 | - |
 | 31 | github-project-analyzer | Shell | GitHub 项目分析工具 | ⏳ 待验证 | - |
 | 32 | googletest_demo | CMake | Google Test 示例 | ⏳ 待验证 | - |
 | 33 | hello-world-page | HTML | Hello World 页面 | ⏳ 待验证 | - |
