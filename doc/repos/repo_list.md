@@ -46,10 +46,10 @@
 | 19 | behavior | Python | 行为分析相关 | ✅ 已完成 | - |
 | 20 | cc_skills_marketplace | Shell | Skills Marketplace | ✅ 已完成 | - |
 | 21 | cmake_learn | null | CMake 学习项目 | ✅ 已完成 | - |
-| 22 | cocos2d-x | C++ | Cocos2d-x 游戏引擎 | ⏳ 待验证 | - |
-| 23 | cocos-engine-claude-skills | null | Cocos Creator Claude Skills | ⏳ 待验证 | - |
+| 22 | cocos2d-x | C++ | Cocos2d-x 游戏引擎 | 📦 已归档 | 2026-04-05 |
+| 23 | cocos-engine-claude-skills | null | Cocos Creator Claude Skills | ✅ 已完成 | - |
 | 24 | code-optimizer-skill | Python | 代码优化技能 | ✅ 已完成 | - |
-| 25 | cpython | Python | CPython 源码学习 | ⏳ 待验证 | - |
+| 25 | cpython | Python | CPython 源码学习 | 📦 已归档 | 2026-04-05 |
 | 26 | dykongshan-research | HTML | 调研文档中心 | ✅ 已完成 | - |
 | 27 | dykongshan | Vue | Vue.js 项目 | ✅ 已完成 | - |
 | 28 | game_auto_test_fw | Python | 游戏自动化测试框架 | ✅ 已完成 | - |
