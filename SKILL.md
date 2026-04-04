@@ -1,6 +1,6 @@
 ---
 name: project-skill-generator
-version: 0.1.32
+version: 0.1.101
 status: production-ready
 success_rate: 95%+
 description: >
