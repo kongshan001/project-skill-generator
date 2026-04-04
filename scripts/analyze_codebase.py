@@ -110,7 +110,7 @@ class CodebaseAnalyzer:
         for file in self.root.rglob("*"):
             if file.is_file():
                 ext = file.suffix
-                if ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go', '.rs', '.cpp', '.c', '.h', '.hpp', '.sh']:
+                if ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go', '.rs', '.cpp', '.c', '.h', '.hpp', '.sh', '.html', '.htm', '.md', '.markdown']:
                     extensions[ext] += 1
         
         if not extensions:
@@ -130,7 +130,11 @@ class CodebaseAnalyzer:
             '.c': 'c',
             '.h': 'cpp',  # Treat header files as C++
             '.hpp': 'cpp',
-            '.sh': 'shell'  # Shell scripts
+            '.sh': 'shell',  # Shell scripts
+            '.html': 'html',
+            '.htm': 'html',
+            '.md': 'markdown',
+            '.markdown': 'markdown'
         }
         
         most_common = max(extensions.items(), key=lambda x: x[1])
@@ -230,6 +234,10 @@ class CodebaseAnalyzer:
             self._discover_cpp_modules()
         elif self.language == "shell":
             self._discover_shell_modules()
+        elif self.language == "html":
+            self._discover_html_modules()
+        elif self.language == "markdown":
+            self._discover_markdown_modules()
         else:
             self._discover_generic_modules()
     
@@ -516,6 +524,42 @@ class CodebaseAnalyzer:
                     files=[str(f) for f in shell_files]
                 )
     
+    def _discover_html_modules(self):
+        """Discover HTML project modules"""
+        # Find HTML files
+        html_files = list(self.root.rglob("*.html")) + list(self.root.rglob("*.htm"))
+        
+        if html_files:
+            # Create a single module for all HTML files
+            self.modules["html-pages"] = ModuleInfo(
+                name="html-pages",
+                path=str(self.root),
+                language="html",
+                files=[str(f) for f in html_files]
+            )
+            print(f"✅ 发现HTML模块: html-pages ({len(html_files)} 个文件)")
+        else:
+            # Fallback to generic module discovery
+            self._discover_generic_modules()
+    
+    def _discover_markdown_modules(self):
+        """Discover Markdown document modules"""
+        # Find markdown files
+        md_files = list(self.root.rglob("*.md")) + list(self.root.rglob("*.markdown"))
+        
+        if md_files:
+            # Create a single module for all markdown files
+            self.modules["markdown-docs"] = ModuleInfo(
+                name="markdown-docs",
+                path=str(self.root),
+                language="markdown",
+                files=[str(f) for f in md_files]
+            )
+            print(f"✅ 发现Markdown模块: markdown-docs ({len(md_files)} 个文件)")
+        else:
+            # Fallback to generic module discovery
+            self._discover_generic_modules()
+    
     def _discover_generic_modules(self):
         """Discover modules for other languages"""
         # Group by top-level directories
@@ -542,6 +586,10 @@ class CodebaseAnalyzer:
                 self._analyze_cpp_file(file_path, module)
             elif self.language == "shell":
                 self._analyze_shell_file(file_path, module)
+            elif self.language == "html":
+                self._analyze_html_file(file_path, module)
+            elif self.language == "markdown":
+                self._analyze_markdown_file(file_path, module)
             
             self.processed_files += 1
             self._update_progress()
@@ -854,6 +902,140 @@ class CodebaseAnalyzer:
             
         except Exception as e:
             print(f"   ⚠️  Error analyzing {file_path}: {e}")
+    
+    def _analyze_html_file(self, file_path: str, module: ModuleInfo):
+        """Analyze an HTML file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract HTML title
+            title_pattern = r'<title[^>]*>(.*?)</title>'
+            title_match = re.search(title_pattern, content, re.IGNORECASE)
+            if title_match:
+                title = title_match.group(1).strip()
+                if title:
+                    module.exports.append(title)
+            
+            # Extract meta description
+            desc_pattern = r'<meta[^>]*name=["\']description["\'][^>]*content=["\']([^"\']+)["\']'
+            desc_match = re.search(desc_pattern, content, re.IGNORECASE)
+            if desc_match:
+                module.exports.append(desc_match.group(1).strip())
+            
+            # Extract CSS classes and IDs
+            class_pattern = r'class=["\']([^"\']+)["\']'
+            for match in re.finditer(class_pattern, content):
+                classes = match.group(1).split()
+                for cls in classes:
+                    module.imports.add(f".{cls}")
+            
+            id_pattern = r'id=["\']([^"\']+)["\']'
+            for match in re.finditer(id_pattern, content):
+                module.imports.add(f"#{match.group(1)}")
+            
+            # Extract functions from inline scripts
+            script_pattern = r'<script[^>]*>(.*?)</script>'
+            for match in re.finditer(script_pattern, content, re.DOTALL):
+                script_content = match.group(1)
+                # Extract function names from scripts
+                func_pattern = r'function\s+(\w+)'
+                for func_match in re.finditer(func_pattern, script_content):
+                    module.functions.append(func_match.group(1))
+            
+            # Extract patterns
+            self._extract_html_patterns(content, module, file_path)
+            
+        except Exception as e:
+            print(f"   ⚠️  Error analyzing HTML file {file_path}: {e}")
+    
+    def _analyze_markdown_file(self, file_path: str, module: ModuleInfo):
+        """Analyze a Markdown file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract title from heading
+            title_pattern = r'^#\s+(.+)$'
+            title_match = re.search(title_pattern, content, re.MULTILINE)
+            if title_match:
+                title = title_match.group(1).strip()
+                if title:
+                    module.exports.append(title)
+            
+            # Extract headers
+            header_pattern = r'^#+\s+(.+)$'
+            for match in re.finditer(header_pattern, content, re.MULTILINE):
+                module.functions.append(match.group(1).strip())
+            
+            # Extract links
+            link_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+            for match in re.finditer(link_pattern, content):
+                module.imports.add(match.group(2))
+            
+            # Extract code blocks
+            code_pattern = r'```([^`]+)```'
+            for match in re.finditer(code_pattern, content, re.DOTALL):
+                code_block = match.group(1).strip()
+                if code_block:
+                    module.classes.append(f"code-block:{len(code_block)}")
+            
+            # Extract patterns
+            self._extract_markdown_patterns(content, module, file_path)
+            
+        except Exception as e:
+            print(f"   ⚠️  Error analyzing Markdown file {file_path}: {e}")
+    
+    def _extract_html_patterns(self, content: str, module: ModuleInfo, file_path: str):
+        """Extract HTML-specific patterns"""
+        patterns_found = []
+        
+        # Check for modern HTML5 features
+        if '<header>' in content:
+            patterns_found.append("html5-semantic")
+        if '<footer>' in content:
+            patterns_found.append("html5-semantic")
+        if '<nav>' in content:
+            patterns_found.append("html5-semantic")
+        if '<section>' in content:
+            patterns_found.append("html5-semantic")
+        
+        # Check for responsive design
+        if 'viewport' in content.lower():
+            patterns_found.append("responsive-design")
+        
+        # Check for Bootstrap
+        if 'bootstrap' in content.lower():
+            patterns_found.append("bootstrap")
+        
+        # Check for CSS framework
+        if 'tailwind' in content.lower():
+            patterns_found.append("tailwind")
+        
+        if patterns_found:
+            module.patterns.extend(patterns_found)
+    
+    def _extract_markdown_patterns(self, content: str, module: ModuleInfo, file_path: str):
+        """Extract Markdown-specific patterns"""
+        patterns_found = []
+        
+        # Check for code blocks
+        if '```' in content:
+            patterns_found.append("code-blocks")
+        
+        # Check for tables
+        if '|' in content and '\n' in content:
+            lines = content.split('\n')
+            has_table = any('|' in line for line in lines if len(line.strip()) > 0)
+            if has_table:
+                patterns_found.append("tables")
+        
+        # Check for links
+        if '[' in content and '(' in content:
+            patterns_found.append("links")
+        
+        if patterns_found:
+            module.patterns.extend(patterns_found)
     
     def _extract_python_patterns(self, content: str, module: ModuleInfo, file_path: str):
         """Extract Python-specific patterns"""
