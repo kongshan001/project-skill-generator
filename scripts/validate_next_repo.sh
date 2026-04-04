@@ -147,7 +147,8 @@ main() {
         cd "$REPO"
         git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
     else
-        git clone "https://github.com/kongshan001/${REPO}.git"
+        # 添加超时和浅克隆机制避免大仓库超时
+        git clone --depth 1 --timeout 60 "https://github.com/kongshan001/${REPO}.git"
         cd "$REPO"
     fi
     
