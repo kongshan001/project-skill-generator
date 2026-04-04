@@ -57,7 +57,7 @@
 | 30 | games101_hw | C++ | Games101 作业 | ✅ 已完成 | - |
 | 31 | github-project-analyzer | Shell | GitHub 项目分析工具 | ✅ 已完成 | - |
 | 32 | googletest_demo | CMake | Google Test 示例 | ✅ 已完成 | - |
-| 33 | hello-world-page | HTML | Hello World 页面 | ⏳ 待验证 | - |
+| 33 | hello-world-page | HTML | Hello World 页面 | ✅ 已完成 | - |
 
 ## 验证指标
 
