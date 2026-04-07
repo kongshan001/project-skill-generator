@@ -177,6 +177,43 @@ EOF
         log_success "代码库分析完成"
         echo "- 状态: ✅ 成功" >> "$REPORT_FILE"
         echo "- 分析文件: $ANALYSIS_FILE" >> "$REPORT_FILE"
+        
+        # Extract and display project information from analysis JSON
+        log "提取项目信息..."
+        python3 -c "
+import json
+import sys
+try:
+    with open('$ANALYSIS_FILE', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    language = data.get('language', 'unknown')
+    architecture = data.get('architecture', 'unknown')
+    total_files = data.get('total_files', 0)
+    total_lines = data.get('total_lines', 0)
+    modules = data.get('modules', [])
+    
+    print(f'- 主要语言: {language}')
+    print(f'- 项目类型: {architecture}')
+    print(f'- 文件数量: {total_files}')
+    print(f'- 代码行数: {total_lines}')
+    print(f'- 模块数量: {len(modules)}')
+    
+    # Add project overview to report
+    with open('$REPORT_FILE', 'a', encoding='utf-8') as f:
+        f.write('\n## 📊 项目概览\n')
+        f.write(f'- **主要语言**: {language}\n')
+        f.write(f'- **项目类型**: {architecture}\n')
+        f.write(f'- **文件数量**: {total_files}\n')
+        f.write(f'- **代码行数**: {total_lines}\n')
+        f.write(f'- **模块数量**: {len(modules)}\n')
+        f.write(f'- **分析文件**: $ANALYSIS_FILE\n')
+        
+except Exception as e:
+    print(f'Error reading analysis file: {e}')
+    print('- 主要语言: unknown')
+    print('- 项目类型: unknown')
+" >> "$REPORT_FILE"
     else
         log_error "代码库分析失败"
         echo "- 状态: ❌ 失败" >> "$REPORT_FILE"
